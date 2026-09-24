@@ -1,17 +1,24 @@
 <?php
-    
-    require_once __DIR__ . '/../config/Database.php';
 
-        class BaseModel
-        {
-            protected PDO $db;
+require_once __DIR__ . '/../config/Database.php';
 
-            public function __construct()
-            {
-                $database = new Database();
+class BaseModel
+{
+    protected PDO $db;
 
-                $this ->db = $database -> connect();
-            }
+    public function __construct()
+    {
+        try {
+            $database = new Database();
+
+            $this->db = $database->connect();
+
+        } catch (PDOException $e) {
+            throw new Exception(
+                "Unable to connect to the database.",
+                0,
+                $e
+            );
         }
-
-?>
+    }
+}
