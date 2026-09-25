@@ -236,43 +236,185 @@ class Reservation extends BaseModel implements Reservable
         return $reservation;
     }
 
-    //update reservation in the database
+    // Update reservation in the databas
     public function update(): bool
     {
-        $sql = "UPDATE reservations
-                SET
-                    event_id = :event_id,
-                    attendee_id = :attendee_id,
-                    quantity = :quantity,
-                    status = :status
-                WHERE id = :id";
+        if ($this->id <= 0) {
+            throw new Exception("Invalid reservation.");
+        }
 
-        $stmt = $this->db->prepare($sql);
+        if ($this->eventId <= 0) {
+            throw new Exception("Invalid event.");
+        }
 
-        return $stmt->execute([
-            ':event_id' => $this->eventId,
-            ':attendee_id' => $this->attendeeId,
-            ':quantity' => $this->quantity,
-            ':status' => $this->status,
-            ':id' => $this->id
-        ]);
+        if ($this->attendeeId <= 0) {
+            throw new Exception("Invalid attendee.");
+        }
+
+        if ($this->quantity <= 0) {
+            throw new Exception("Reservation quantity must be greater than zero.");
+        }
+
+        $allowedStatuses = [
+            'CONFIRMED',
+            'CANCELLED'
+        ];
+
+        if (!in_array($this->status, $allowedStatuses, true)) {
+            throw new Exception("Invalid reservation status.");
+        }
+
+        try {
+
+            $this->db->beginTransaction();
+
+            // Get the existing reservation
+            $sql = "SELECT
+                        id,
+                        event_id,
+                        quantity,
+                        status
+                    FROM reservations
+                    WHERE id = :id
+                    FOR UPDATE";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->execute([
+                ':id' => $this->id
+            ]);
+
+            $oldReservation = $stmt->fetch();
+
+            if ($oldReservation === false) {
+                throw new Exception("Reservation not found.");
+            }
+
+            $oldEventId = (int) $oldReservation['event_id'];
+            $oldQuantity = (int) $oldReservation['quantity'];
+            $oldStatus = $oldReservation['status'];
+
+            /*
+            * Return the old reserved slots if the
+            * old reservation was CONFIRMED.
+            */
+            if ($oldStatus === 'CONFIRMED') {
+
+                $sql = "UPDATE events
+                        SET available_slots = available_slots + :quantity
+                        WHERE id = :event_id";
+
+                $stmt = $this->db->prepare($sql);
+
+                $stmt->execute([
+                    ':quantity' => $oldQuantity,
+                    ':event_id' => $oldEventId
+                ]);
+            }
+
+            /*
+            * Reserve slots again if the updated
+            * reservation will be CONFIRMED.
+            */
+            if ($this->status === 'CONFIRMED') {
+
+                $sql = "SELECT
+                            available_slots,
+                            status
+                        FROM events
+                        WHERE id = :event_id
+                        FOR UPDATE";
+
+                $stmt = $this->db->prepare($sql);
+
+                $stmt->execute([
+                    ':event_id' => $this->eventId
+                ]);
+
+                $event = $stmt->fetch();
+
+                if ($event === false) {
+                    throw new Exception("Event not found.");
+                }
+
+                if ($event['status'] !== 'OPEN') {
+                    throw new Exception(
+                        "This event is not currently open for reservation."
+                    );
+                }
+
+                if ($this->quantity > (int) $event['available_slots']) {
+                    throw new Exception("Not enough available slots.");
+                }
+
+                $sql = "UPDATE events
+                        SET available_slots = available_slots - :quantity
+                        WHERE id = :event_id";
+
+                $stmt = $this->db->prepare($sql);
+
+                $stmt->execute([
+                    ':quantity' => $this->quantity,
+                    ':event_id' => $this->eventId
+                ]);
+            }
+
+            /*
+            * Update the reservation.
+            */
+            $sql = "UPDATE reservations
+                    SET
+                        event_id = :event_id,
+                        attendee_id = :attendee_id,
+                        quantity = :quantity,
+                        status = :status
+                    WHERE id = :id";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->execute([
+                ':event_id' => $this->eventId,
+                ':attendee_id' => $this->attendeeId,
+                ':quantity' => $this->quantity,
+                ':status' => $this->status,
+                ':id' => $this->id
+            ]);
+
+            /*
+            * Keep the ticket status synchronized
+            * with the reservation status.
+            */
+            $ticketStatus = ($this->status === 'CONFIRMED')
+                ? 'VALID'
+                : 'CANCELLED';
+
+            $sql = "UPDATE tickets
+                    SET status = :ticket_status
+                    WHERE reservation_id = :reservation_id";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->execute([
+                ':ticket_status' => $ticketStatus,
+                ':reservation_id' => $this->id
+            ]);
+
+            $this->db->commit();
+
+            return true;
+
+        } catch (Exception $e) {
+
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
-    //delete reservation from the database/
-    public function delete(): bool
-    {
-        $sql = "DELETE FROM reservations
-                WHERE id = :id";
-
-        $stmt = $this->db->prepare($sql);
-
-        return $stmt->execute([
-            ':id' => $this->id
-        ]);
-    }
-
-    //create a reservation transaction
-    public function createReservationTransaction(
+        //create a reservation transaction
+        public function createReservationTransaction(
         string $firstName,
         string $lastName,
         string $email,
@@ -292,9 +434,14 @@ class Reservation extends BaseModel implements Reservable
 
         try {
 
+            // Start one transaction for the entire reservation process
             $this->db->beginTransaction();
 
-            // Check the event and lock the row
+            /*
+            * 1. Lock the event row
+            * so available slots cannot be changed by
+            * another reservation at the same time.
+            */
             $sql = "SELECT
                         id,
                         available_slots,
@@ -316,46 +463,74 @@ class Reservation extends BaseModel implements Reservable
             }
 
             if ($event['status'] !== 'OPEN') {
-                throw new Exception("This event is not currently open for reservation.");
+                throw new Exception(
+                    "This event is not currently open for reservation."
+                );
             }
 
             if ($this->quantity > (int) $event['available_slots']) {
                 throw new Exception("Not enough available slots.");
             }
 
-            // Find existing attendee by email
-            $attendeeModel = new Attendee();
+            /*
+            * 2. Find attendee using the SAME PDO connection.
+            */
+            $sql = "SELECT
+                        id,
+                        first_name,
+                        last_name,
+                        email,
+                        phone
+                    FROM attendees
+                    WHERE email = :email";
 
-            $attendee = $attendeeModel->getAttendeeByEmail($email);
+            $stmt = $this->db->prepare($sql);
 
-            if ($attendee === null) {
+            $stmt->execute([
+                ':email' => $email
+            ]);
 
-                // Create new attendee
-                $attendeeModel->setFirstName($firstName);
-                $attendeeModel->setLastName($lastName);
-                $attendeeModel->setEmail($email);
-                $attendeeModel->setPhone($phone);
+            $attendee = $stmt->fetch();
 
-                if (!$attendeeModel->create()) {
-                    throw new Exception("Unable to create attendee.");
-                }
+            /*
+            * 3. Create attendee if they don't exist.
+            */
+            if ($attendee === false) {
 
-                // Get the newly created attendee
-                $attendee = $attendeeModel->getAttendeeByEmail($email);
+                $sql = "INSERT INTO attendees
+                        (
+                            first_name,
+                            last_name,
+                            email,
+                            phone
+                        )
+                        VALUES
+                        (
+                            :first_name,
+                            :last_name,
+                            :email,
+                            :phone
+                        )";
 
-                if ($attendee === null) {
-                    throw new Exception("Unable to retrieve the new attendee.");
-                }
+                $stmt = $this->db->prepare($sql);
+
+                $stmt->execute([
+                    ':first_name' => trim($firstName),
+                    ':last_name' => trim($lastName),
+                    ':email' => trim($email),
+                    ':phone' => trim($phone)
+                ]);
+
+                $this->attendeeId = (int) $this->db->lastInsertId();
 
             } else {
 
-                // Use existing attendee
                 $this->attendeeId = (int) $attendee['id'];
             }
 
-            $this->attendeeId = (int) $attendee['id'];
-
-            // Create reservation
+            /*
+            * 4. Create the reservation.
+            */
             $this->status = 'CONFIRMED';
 
             $sql = "INSERT INTO reservations
@@ -386,63 +561,145 @@ class Reservation extends BaseModel implements Reservable
 
             $reservationId = (int) $this->db->lastInsertId();
 
-        // Decrease available slots
-        $sql = "UPDATE events
-                SET available_slots = available_slots - :quantity
-                WHERE id = :event_id";
+            /*
+            * 5. Decrease available slots.
+            */
+            $sql = "UPDATE events
+                    SET available_slots = available_slots - :quantity
+                    WHERE id = :event_id";
 
-        $stmt = $this->db->prepare($sql);
+            $stmt = $this->db->prepare($sql);
 
-        $stmt->execute([
-            ':quantity' => $this->quantity,
-            ':event_id' => $this->eventId
-        ]);
+            $stmt->execute([
+                ':quantity' => $this->quantity,
+                ':event_id' => $this->eventId
+            ]);
 
-    // Generate ticket number
-    $ticketNumber = 'TKT-' . date('YmdHis') . '-' . strtoupper(
-        bin2hex(random_bytes(3))
-    );
+            /*
+            * 6. Generate a unique ticket number.
+            */
+            $ticketNumber = 'TKT-' . date('YmdHis') . '-' . strtoupper(
+                bin2hex(random_bytes(3))
+            );
 
-    // Create ticket
-    $sql = "INSERT INTO tickets
-            (
-                reservation_id,
-                ticket_number,
-                issued_at,
-                status
-            )
-            VALUES
-            (
-                :reservation_id,
-                :ticket_number,
-                CURRENT_TIMESTAMP,
-                :status
-            )";
+            /*
+            * 7. Create the ticket.
+            */
+            $sql = "INSERT INTO tickets
+                    (
+                        reservation_id,
+                        ticket_number,
+                        issued_at,
+                        status
+                    )
+                    VALUES
+                    (
+                        :reservation_id,
+                        :ticket_number,
+                        CURRENT_TIMESTAMP,
+                        :status
+                    )";
 
-    $stmt = $this->db->prepare($sql);
+            $stmt = $this->db->prepare($sql);
 
-    if (!$stmt->execute([
-        ':reservation_id' => $reservationId,
-        ':ticket_number' => $ticketNumber,
-        ':status' => 'VALID'
-    ])) {
-        throw new Exception("Unable to create ticket.");
+            $stmt->execute([
+                ':reservation_id' => $reservationId,
+                ':ticket_number' => $ticketNumber,
+                ':status' => 'VALID'
+            ]);
+
+            /*
+            * 8. Everything succeeded.
+            * Commit the entire transaction.
+            */
+            $this->db->commit();
+
+            $this->id = $reservationId;
+
+            return $reservationId;
+
+        } catch (Exception $e) {
+
+            /*
+            * If anything failed, undo everything
+            * performed during this transaction.
+            */
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
-    $this->db->commit();
+    // Delete reservation from the database
+    public function delete(): bool
+    {
+        if ($this->id <= 0) {
+            throw new Exception("Invalid reservation.");
+        }
 
-                $this->id = $reservationId;
+        try {
+            $this->db->beginTransaction();
 
-                return $reservationId;
+            // Get the reservation before deleting it
+            $sql = "SELECT
+                        event_id,
+                        quantity,
+                        status
+                    FROM reservations
+                    WHERE id = :id
+                    FOR UPDATE";
 
-            } catch (Exception $e) {
+            $stmt = $this->db->prepare($sql);
 
-                if ($this->db->inTransaction()) {
-                    $this->db->rollBack();
-                }
+            $stmt->execute([
+                ':id' => $this->id
+            ]);
 
-                throw $e;
+            $reservation = $stmt->fetch();
+
+            if ($reservation === false) {
+                throw new Exception("Reservation not found.");
             }
+
+            // Return the reserved slots if the reservation is confirmed
+            if ($reservation['status'] === 'CONFIRMED') {
+
+                $sql = "UPDATE events
+                        SET available_slots = available_slots + :quantity
+                        WHERE id = :event_id";
+
+                $stmt = $this->db->prepare($sql);
+
+                $stmt->execute([
+                    ':quantity' => (int) $reservation['quantity'],
+                    ':event_id' => (int) $reservation['event_id']
+                ]);
+            }
+
+            // Delete the reservation
+            $sql = "DELETE FROM reservations
+                    WHERE id = :id";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->execute([
+                ':id' => $this->id
+            ]);
+
+            $this->db->commit();
+
+            return true;
+
+        } catch (Exception $e) {
+
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
     }
 }
 
