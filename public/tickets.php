@@ -7,13 +7,10 @@ $ticketModel = new Ticket();
 $error = '';
 
 try {
-
     $tickets = $ticketModel->getAllTickets();
-
 } catch (Exception $e) {
-
     $tickets = [];
-    $error = "Unable to load tickets.";
+    $error = 'Unable to load tickets.';
 }
 
 ?>
@@ -30,130 +27,168 @@ try {
         content="width=device-width, initial-scale=1.0"
     >
 
+    <link rel="stylesheet" href="../assets/css/style.css">
+
     <title>Ticket Management</title>
 
 </head>
 
 <body>
 
-    <h1>Ticket Management</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <p>
-        <a href="events.php">Events</a>
-        |
-        <a href="attendees.php">Attendees</a>
-        |
-        <a href="reservations.php">Reservations</a>
-    </p>
+<div class="container">
 
-    <hr>
+    <div class="page-header">
+
+        <div>
+
+            <h1>Ticket Management</h1>
+
+            <p class="page-description">
+                View and manage issued tickets and their current status.
+            </p>
+
+        </div>
+
+    </div>
 
     <?php if ($error !== ''): ?>
 
-        <p>
+        <div class="error">
             <strong>Error:</strong>
-            <?php echo htmlspecialchars($error); ?>
-        </p>
+            <?= htmlspecialchars($error) ?>
+        </div>
 
     <?php elseif (empty($tickets)): ?>
 
-        <p>No tickets have been issued yet.</p>
+        <div class="card">
+
+            <h3>No Tickets Yet</h3>
+
+            <p>
+                No tickets have been issued yet.
+            </p>
+
+            <a href="events.php" class="btn btn-primary">
+                View Events
+            </a>
+
+        </div>
 
     <?php else: ?>
 
-        <table border="1" cellpadding="8" cellspacing="0">
+        <div class="table-container">
 
-            <thead>
+            <table>
 
-                <tr>
-
-                    <th>ID</th>
-                    <th>Ticket Number</th>
-                    <th>Event</th>
-                    <th>Attendee</th>
-                    <th>Email</th>
-                    <th>Quantity</th>
-                    <th>Issued At</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <?php foreach ($tickets as $ticket): ?>
+                <thead>
 
                     <tr>
-
-                        <td>
-                            <?php echo $ticket['id']; ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['ticket_number']
-                            ); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['event_title']
-                            ); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['attendee_name']
-                            ); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['attendee_email']
-                            ); ?>
-                        </td>
-
-                        <td>
-                            <?php echo $ticket['quantity']; ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['issued_at']
-                            ); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars(
-                                $ticket['status']
-                            ); ?>
-                        </td>
-
-                        <td>
-
-                            <a href="update-ticket.php?id=<?php echo $ticket['id']; ?>">
-                                Edit
-                            </a>
-
-                            |
-
-                            <a href="delete-ticket.php?id=<?php echo $ticket['id']; ?>">
-                                Delete
-                            </a>
-
-                        </td>
-
+                        <th>ID</th>
+                        <th>Ticket Number</th>
+                        <th>Event</th>
+                        <th>Attendee</th>
+                        <th>Email</th>
+                        <th>Quantity</th>
+                        <th>Issued At</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
 
-                <?php endforeach; ?>
+                </thead>
 
-            </tbody>
+                <tbody>
 
-        </table>
+                    <?php foreach ($tickets as $ticket): ?>
+
+                        <tr>
+
+                            <td>
+                                <?= (int) $ticket['id'] ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($ticket['ticket_number']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($ticket['event_title']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($ticket['attendee_name']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($ticket['attendee_email']) ?>
+                            </td>
+
+                            <td>
+                                <?= (int) $ticket['quantity'] ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($ticket['issued_at']) ?>
+                            </td>
+
+                            <td>
+
+                                <?php if ($ticket['status'] === 'VALID'): ?>
+
+                                    <span class="status-badge status-open">
+                                        VALID
+                                    </span>
+
+                                <?php elseif ($ticket['status'] === 'CANCELLED'): ?>
+
+                                    <span class="status-badge status-cancelled">
+                                        CANCELLED
+                                    </span>
+
+                                <?php else: ?>
+
+                                    <span class="status-badge status-closed">
+                                        <?= htmlspecialchars($ticket['status']) ?>
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </td>
+
+                            <td>
+
+                                <a
+                                    href="update-ticket.php?id=<?= (int) $ticket['id'] ?>"
+                                    class="btn btn-secondary"
+                                >
+                                    Edit
+                                </a>
+
+                                <a
+                                    href="delete-ticket.php?id=<?= (int) $ticket['id'] ?>"
+                                    class="btn btn-danger"
+                                >
+                                    Delete
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
 
     <?php endif; ?>
+
+</div>
+
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 

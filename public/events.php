@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../classes/Event.php';
 
+
 try {
     $eventModel = new Event();
 
@@ -24,122 +25,136 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="stylesheet" href="../assets/css/style.css">
+
     <title>Event Management</title>
 </head>
 
 <body>
 
-    <h1>Event Management</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<form method="GET" action="">
+<div class="container">
 
-    <input
-        type="text"
-        name="search"
-        placeholder="Search event title or venue..."
-        value="<?php echo htmlspecialchars($search); ?>"
-    >
+    <div class="page-header">
 
-    <select name="status">
+        <div>
+            <h1>Event Management</h1>
+            <p class="page-description">
+                Manage your events, schedules, capacity, and reservations.
+            </p>
+        </div>
 
-        <option value="">
-            All Statuses
-        </option>
-
-        <option
-            value="OPEN"
-            <?php echo $status === 'OPEN' ? 'selected' : ''; ?>
-        >
-            OPEN
-        </option>
-
-        <option
-            value="CLOSED"
-            <?php echo $status === 'CLOSED' ? 'selected' : ''; ?>
-        >
-            CLOSED
-        </option>
-
-        <option
-            value="CANCELLED"
-            <?php echo $status === 'CANCELLED' ? 'selected' : ''; ?>
-        >
-            CANCELLED
-        </option>
-
-    </select>
-
-    <select name="sort">
-
-        <option
-            value="date_asc"
-            <?php echo $sort === 'date_asc' ? 'selected' : ''; ?>
-        >
-            Date - Earliest First
-        </option>
-
-        <option
-            value="date_desc"
-            <?php echo $sort === 'date_desc' ? 'selected' : ''; ?>
-        >
-            Date - Latest First
-        </option>
-
-        <option
-            value="title_asc"
-            <?php echo $sort === 'title_asc' ? 'selected' : ''; ?>
-        >
-            Title - A to Z
-        </option>
-
-        <option
-            value="title_desc"
-            <?php echo $sort === 'title_desc' ? 'selected' : ''; ?>
-        >
-            Title - Z to A
-        </option>
-
-        <option
-            value="capacity_asc"
-            <?php echo $sort === 'capacity_asc' ? 'selected' : ''; ?>
-        >
-            Capacity - Lowest First
-        </option>
-
-        <option
-            value="capacity_desc"
-            <?php echo $sort === 'capacity_desc' ? 'selected' : ''; ?>
-        >
-            Capacity - Highest First
-        </option>
-
-    </select>
-
-    <button type="submit">
-        Search / Filter
-    </button>
-
-    <?php if ($search !== '' || $status !== '' || $sort !== 'date_asc'): ?>
-
-        <a href="events.php">
-            Clear
+        <a href="create-event.php" class="btn btn-primary">
+            + Add New Event
         </a>
 
-    <?php endif; ?>
+    </div>
 
-</form>
+    <form method="GET" action="" class = "filter-form">
 
-<br>
+        <input
+            type="text"
+            name="search"
+            placeholder="Search event title or venue..."
+            value="<?= htmlspecialchars($search) ?>"
+        >
 
-<a href="create-event.php">Add New Event</a>
+        <select name="status">
 
-    <br><br>
+            <option value="">All Statuses</option>
+
+            <option
+                value="OPEN"
+                <?= $status === 'OPEN' ? 'selected' : '' ?>
+            >
+                OPEN
+            </option>
+
+            <option
+                value="CLOSED"
+                <?= $status === 'CLOSED' ? 'selected' : '' ?>
+            >
+                CLOSED
+            </option>
+
+            <option
+                value="CANCELLED"
+                <?= $status === 'CANCELLED' ? 'selected' : '' ?>
+            >
+                CANCELLED
+            </option>
+
+        </select>
+
+        <select name="sort">
+
+            <option
+                value="date_asc"
+                <?= $sort === 'date_asc' ? 'selected' : '' ?>
+            >
+                Date - Earliest First
+            </option>
+
+            <option
+                value="date_desc"
+                <?= $sort === 'date_desc' ? 'selected' : '' ?>
+            >
+                Date - Latest First
+            </option>
+
+            <option
+                value="title_asc"
+                <?= $sort === 'title_asc' ? 'selected' : '' ?>
+            >
+                Title - A to Z
+            </option>
+
+            <option
+                value="title_desc"
+                <?= $sort === 'title_desc' ? 'selected' : '' ?>
+            >
+                Title - Z to A
+            </option>
+
+            <option
+                value="capacity_asc"
+                <?= $sort === 'capacity_asc' ? 'selected' : '' ?>
+            >
+                Capacity - Lowest First
+            </option>
+
+            <option
+                value="capacity_desc"
+                <?= $sort === 'capacity_desc' ? 'selected' : '' ?>
+            >
+                Capacity - Highest First
+            </option>
+
+        </select>
+
+        <button type="submit">
+            Search / Filter
+        </button>
+
+        <?php if ($search !== '' || $status !== '' || $sort !== 'date_asc'): ?>
+
+            <a href="events.php" class = "clear-filter">
+                Clear
+            </a>
+
+        <?php endif; ?>
+
+    </form>
+
+    <br>
+
 
     <?php if (isset($error)): ?>
 
-        <p>
-            <?php echo htmlspecialchars($error); ?>
-        </p>
+        <div class="error">
+            <?= htmlspecialchars($error) ?>
+        </div>
 
     <?php elseif (empty($events)): ?>
 
@@ -147,98 +162,110 @@ try {
 
     <?php else: ?>
 
-        <table border="1" cellpadding="8">
+        <div class="table-container">
 
-            <thead>
+            <table>
 
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Venue</th>
-                    <th>Capacity</th>
-                    <th>Available Slots</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <?php foreach ($events as $event): ?>
+                <thead>
 
                     <tr>
-
-                        <td>
-                            <?php echo $event['id']; ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($event['title']); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($event['event_date']); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($event['event_time']); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($event['venue']); ?>
-                        </td>
-
-                        <td>
-                            <?php echo $event['capacity']; ?>
-                        </td>
-
-                        <td>
-                            <?php echo $event['available_slots']; ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($event['status']); ?>
-                        </td>
-
-                        <td>
-
-                            <?php if ($event['status'] === 'OPEN' && $event['available_slots'] > 0): ?>
-
-                            <a href="reserve.php?event_id=<?php echo $event['id']; ?>">
-                                Reserve
-                            </a>
-
-                                    <?php else: ?>
-
-                                        Not Available
-
-                                    <?php endif; ?>
-                            |
-
-                            <a href="update-event.php?id=<?php echo $event['id']; ?>">
-                                Edit
-                            </a>
-
-                            |
-
-                            <a href="delete-event.php?id=<?php echo $event['id']; ?>">
-                                Delete
-                            </a>
-
-                        </td>
-
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Venue</th>
+                        <th>Capacity</th>
+                        <th>Available Slots</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
 
-                <?php endforeach; ?>
+                </thead>
 
-            </tbody>
+                <tbody>
 
-        </table>
+                    <?php foreach ($events as $event): ?>
+
+                        <tr>
+
+                            <td>
+                                <?= (int) $event['id'] ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($event['title']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($event['event_date']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($event['event_time']) ?>
+                            </td>
+
+                            <td>
+                                <?= htmlspecialchars($event['venue']) ?>
+                            </td>
+
+                            <td>
+                                <?= (int) $event['capacity'] ?>
+                            </td>
+
+                            <td>
+                                <?= (int) $event['available_slots'] ?>
+                            </td>
+
+                            <td>
+
+                                <?php if ($event['status'] === 'OPEN'): ?>
+
+                                    <span class="status-badge status-open">
+                                        OPEN
+                                    </span>
+
+                                <?php elseif ($event['status'] === 'CLOSED'): ?>
+
+                                    <span class="status-badge status-closed">
+                                        CLOSED
+                                    </span>
+
+                                <?php elseif ($event['status'] === 'CANCELLED'): ?>
+
+                                    <span class="status-badge status-cancelled">
+                                        CANCELLED
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </td>
+
+                           <td>
+                                <a href="update-event.php?id=<?= (int) $event['id'] ?>" class="btn btn-secondary">Edit</a>
+
+                                <a href="delete-event.php?id=<?= (int) $event['id'] ?>" class="btn btn-danger">Delete</a>
+
+                                <?php if ($event['status'] === 'OPEN' && (int) $event['available_slots'] > 0): ?>
+                                    <a href="reserve.php?event_id=<?= (int) $event['id'] ?>" class="btn btn-primary">Reserve</a>
+                                <?php endif; ?>
+                            </td>
+
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
 
     <?php endif; ?>
 
+</div>
+
+<script src="../assets/js/navigation.js"></script>
+
 </body>
+
 </html>

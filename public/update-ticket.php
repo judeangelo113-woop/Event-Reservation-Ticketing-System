@@ -7,25 +7,28 @@ $ticketModel = new Ticket();
 $ticketId = (int) ($_GET['id'] ?? 0);
 
 if ($ticketId <= 0) {
-    die("Invalid ticket ID.");
+    die('Invalid ticket ID.');
 }
 
 $ticket = $ticketModel->getTicketById($ticketId);
 
 if ($ticket === null) {
-    die("Ticket not found.");
+    die('Ticket not found.');
 }
 
 $error = '';
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$ticketNumber = $ticket['ticket_number'];
+$status = $ticket['status'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $ticketNumber = trim($_POST['ticket_number'] ?? '');
     $status = trim($_POST['status'] ?? '');
 
     if ($ticketNumber === '') {
 
-        $error = "Ticket number is required.";
+        $error = 'Ticket number is required.';
 
     } elseif (!in_array(
         $status,
@@ -33,7 +36,7 @@ $error = '';
         true
     )) {
 
-        $error = "Invalid ticket status.";
+        $error = 'Invalid ticket status.';
 
     } else {
 
@@ -45,12 +48,16 @@ $error = '';
 
             if ($ticketModel->update()) {
 
-                header("Location: tickets.php?message=updated");
+                header(
+                    'Location: tickets.php?message=' .
+                    urlencode('Ticket updated successfully')
+                );
+
                 exit;
 
             } else {
 
-                $error = "Unable to update ticket.";
+                $error = 'Unable to update ticket.';
             }
 
         } catch (Exception $e) {
@@ -59,6 +66,7 @@ $error = '';
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -73,111 +81,143 @@ $error = '';
         content="width=device-width, initial-scale=1.0"
     >
 
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
+
     <title>Update Ticket</title>
 
 </head>
 
 <body>
 
-    <h1>Update Ticket</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
+
+<div class="container">
+
+    <div class="form-header">
+
+        <h1>Update Ticket</h1>
+
+        <p>
+            Update the ticket number or ticket status.
+        </p>
+
+    </div>
+
+    <a
+        href="tickets.php"
+        class="btn btn-secondary back-button"
+    >
+        ← Back to Ticket Management
+    </a>
 
     <?php if ($error !== ''): ?>
 
-        <p>
-            <strong>Error:</strong>
-            <?php echo htmlspecialchars($error); ?>
-        </p>
+        <div class="error">
+
+            <?= htmlspecialchars($error) ?>
+
+        </div>
 
     <?php endif; ?>
 
-    <p>
-        <strong>Event:</strong>
-        <?php echo htmlspecialchars($ticket['event_title']); ?>
-    </p>
+    <div class="form-container">
 
-    <p>
-        <strong>Attendee:</strong>
-        <?php echo htmlspecialchars($ticket['attendee_name']); ?>
-    </p>
+        <div class="delete-details">
 
-    <form method="POST">
+            <p>
+                <strong>Event:</strong>
+                <?= htmlspecialchars($ticket['event_title']) ?>
+            </p>
 
-        <div>
+            <p>
+                <strong>Attendee:</strong>
+                <?= htmlspecialchars($ticket['attendee_name']) ?>
+            </p>
 
-            <label for="ticket_number">
-                Ticket Number:
-            </label>
+            <p>
+                <strong>Email:</strong>
+                <?= htmlspecialchars($ticket['attendee_email']) ?>
+            </p>
 
-            <br>
+            <p>
+                <strong>Issued At:</strong>
+                <?= htmlspecialchars($ticket['issued_at']) ?>
+            </p>
 
-            <input
-                type="text"
-                id="ticket_number"
-                name="ticket_number"
-                value="<?php echo htmlspecialchars(
-                    $_POST['ticket_number']
-                    ?? $ticket['ticket_number']
-                ); ?>"
-                required
+        </div>
+
+        <form method="POST">
+
+            <div class="form-group">
+
+                <label for="ticket_number">
+                    Ticket Number
+                </label>
+
+                <input
+                    type="text"
+                    id="ticket_number"
+                    name="ticket_number"
+                    value="<?= htmlspecialchars($ticketNumber) ?>"
+                    required
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="status">
+                    Status
+                </label>
+
+                <select
+                    id="status"
+                    name="status"
+                    required
+                >
+
+                    <option
+                        value="VALID"
+                        <?= $status === 'VALID' ? 'selected' : '' ?>
+                    >
+                        VALID
+                    </option>
+
+                    <option
+                        value="CANCELLED"
+                        <?= $status === 'CANCELLED' ? 'selected' : '' ?>
+                    >
+                        CANCELLED
+                    </option>
+
+                </select>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
             >
+                Update Ticket
+            </button>
 
-        </div>
+            <a
+                href="tickets.php"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
 
-        <br>
+        </form>
 
-        <div>
+    </div>
 
-            <label for="status">
-                Status:
-            </label>
+</div>
 
-            <br>
-
-            <select id="status" name="status">
-
-                <option
-                    value="VALID"
-                    <?php
-                    $currentStatus =
-                        $_POST['status']
-                        ?? $ticket['status'];
-
-                    echo $currentStatus === 'VALID'
-                        ? 'selected'
-                        : '';
-                    ?>
-                >
-                    VALID
-                </option>
-
-                <option
-                    value="CANCELLED"
-                    <?php
-                    echo $currentStatus === 'CANCELLED'
-                        ? 'selected'
-                        : '';
-                    ?>
-                >
-                    CANCELLED
-                </option>
-
-            </select>
-
-        </div>
-
-        <br>
-
-        <button type="submit">
-            Update Ticket
-        </button>
-
-    </form>
-
-    <br>
-
-    <a href="tickets.php">
-        Back to Tickets
-    </a>
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 

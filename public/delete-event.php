@@ -75,20 +75,35 @@ try {
 
     <title>Delete Event</title>
 
+    <link rel="stylesheet" href="../assets/css/style.css">
+
 </head>
 
 <body>
 
-    <h1>Delete Event</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <a href="events.php">← Back to Event Management</a>
+<main class="container">
 
-    <br><br>
+    <div class="form-header">
+
+        <h1>Delete Event</h1>
+
+        <p>
+            Review the event information before permanently deleting it.
+        </p>
+
+    </div>
+
+
+    <a href="events.php" class="btn btn-secondary back-button">
+        ← Back to Event Management
+    </a>
 
 
     <?php if (!empty($errors)): ?>
 
-        <div>
+        <div class="error">
 
             <strong>Error:</strong>
 
@@ -97,7 +112,7 @@ try {
                 <?php foreach ($errors as $error): ?>
 
                     <li>
-                        <?php echo htmlspecialchars($error); ?>
+                        <?= htmlspecialchars($error) ?>
                     </li>
 
                 <?php endforeach; ?>
@@ -106,77 +121,105 @@ try {
 
         </div>
 
-        <br>
-
     <?php endif; ?>
 
 
-    <h2>Are you sure you want to delete this event?</h2>
+    <div class="form-container">
 
-    <p>
-        <strong>Event ID:</strong>
-        <?php echo $event['id']; ?>
-    </p>
+        <h2>Are you sure you want to delete this event?</h2>
 
-    <p>
-        <strong>Title:</strong>
-        <?php echo htmlspecialchars($event['title']); ?>
-    </p>
-
-    <p>
-        <strong>Date:</strong>
-        <?php echo htmlspecialchars($event['event_date']); ?>
-    </p>
-
-    <p>
-        <strong>Time:</strong>
-        <?php echo htmlspecialchars($event['event_time']); ?>
-    </p>
-
-    <p>
-        <strong>Venue:</strong>
-        <?php echo htmlspecialchars($event['venue']); ?>
-    </p>
-
-    <p>
-        <strong>Capacity:</strong>
-        <?php echo $event['capacity']; ?>
-    </p>
-
-    <p>
-        <strong>Available Slots:</strong>
-        <?php echo $event['available_slots']; ?>
-    </p>
-
-    <p>
-        <strong>Status:</strong>
-        <?php echo htmlspecialchars($event['status']); ?>
-    </p>
-
-    <p>
-        <strong>Warning:</strong>
-        Deleting this event may also delete its related reservations
-        and tickets.
-    </p>
+        <p>
+            This action cannot be undone.
+        </p>
 
 
-    <form method="POST" action="">
+        <div class="delete-details">
 
-        <input
-            type="hidden"
-            name="id"
-            value="<?php echo $event['id']; ?>"
-        >
+            <p>
+                <strong>Event ID:</strong>
+                <?= (int) $event['id'] ?>
+            </p>
 
-        <button type="submit">
-            Yes, Delete Event
-        </button>
+            <p>
+                <strong>Title:</strong>
+                <?= htmlspecialchars($event['title']) ?>
+            </p>
 
-        <a href="events.php">
-            Cancel
-        </a>
+            <p>
+                <strong>Date:</strong>
+                <?= htmlspecialchars($event['event_date']) ?>
+            </p>
 
-    </form>
+            <p>
+                <strong>Time:</strong>
+                <?= htmlspecialchars($event['event_time']) ?>
+            </p>
+
+            <p>
+                <strong>Venue:</strong>
+                <?= htmlspecialchars($event['venue']) ?>
+            </p>
+
+            <p>
+                <strong>Capacity:</strong>
+                <?= (int) $event['capacity'] ?>
+            </p>
+
+            <p>
+                <strong>Available Slots:</strong>
+                <?= (int) $event['available_slots'] ?>
+            </p>
+
+            <p>
+                <strong>Status:</strong>
+                <?= htmlspecialchars($event['status']) ?>
+            </p>
+
+        </div>
+
+
+        <div class="error">
+
+            <strong>Warning:</strong>
+
+            Deleting this event may also delete its related
+            reservations and tickets.
+
+        </div>
+
+
+        <br>
+
+
+        <form method="POST" action="">
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int) $event['id'] ?>"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Yes, Delete Event
+            </button>
+
+            <a
+                href="events.php"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+        </form>
+
+    </div>
+
+</main>
+
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 

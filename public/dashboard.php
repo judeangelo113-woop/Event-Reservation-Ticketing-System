@@ -135,179 +135,259 @@ try {
 
     <title>Dashboard</title>
 
+    <link rel="stylesheet" href="../assets/css/style.css">
+
 </head>
 
 <body>
 
-    <h1>Event Reservation & Ticketing System</h1>
+    <?php
+        require_once __DIR__ . '/../includes/navbar.php';
+    ?>
 
-    <h2>Dashboard</h2>
+    <main class="container">
+        <div class="page-header">
 
+            <div>
+                <h1>Dashboard</h1>
 
-    <!-- Statistics -->
+                <p class="page-description">
+                    Overview of events, attendees, reservations, tickets, and available slots.
+                </p>
+            </div>
 
-    <div>
+        </div>
 
-        <h3>Total Events</h3>
-        <p><?= $totalEvents ?></p>
 
-    </div>
 
+        <div class="dashboard-grid">
 
-    <div>
+            <div class="card">
 
-        <h3>Open Events</h3>
-        <p><?= $openEvents ?></p>
+                <h3>Total Events</h3>
 
-    </div>
+                <div class="number">
+                    <?= $totalEvents ?>
+                </div>
 
+            </div>
 
-    <div>
 
-        <h3>Total Attendees</h3>
-        <p><?= $totalAttendees ?></p>
+            <div class="card">
 
-    </div>
+                <h3>Open Events</h3>
 
+                <div class="number">
+                    <?= $openEvents ?>
+                </div>
 
-    <div>
+            </div>
 
-        <h3>Total Reservations</h3>
-        <p><?= $totalReservations ?></p>
 
-    </div>
+            <div class="card">
 
+                <h3>Total Attendees</h3>
 
-    <div>
+                <div class="number">
+                    <?= $totalAttendees ?>
+                </div>
 
-        <h3>Total Tickets</h3>
-        <p><?= $totalTickets ?></p>
+            </div>
 
-    </div>
 
+            <div class="card">
 
-    <div>
+                <h3>Total Reservations</h3>
 
-        <h3>Available Slots</h3>
-        <p><?= $totalAvailableSlots ?></p>
+                <div class="number">
+                    <?= $totalReservations ?>
+                </div>
 
-    </div>
+            </div>
 
 
-    <!-- Upcoming Events -->
+            <div class="card">
 
-    <h2>Upcoming Events</h2>
+                <h3>Total Tickets</h3>
 
-    <?php if (empty($upcomingEvents)): ?>
+                <div class="number">
+                    <?= $totalTickets ?>
+                </div>
 
-        <p>No upcoming events found.</p>
+            </div>
 
-    <?php else: ?>
 
-        <table border="1" cellpadding="8" cellspacing="0">
+            <div class="card">
 
-            <thead>
+                <h3>Available Slots</h3>
 
-                <tr>
+                <div class="number">
+                    <?= $totalAvailableSlots ?>
+                </div>
 
-                    <th>Event</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Venue</th>
-                    <th>Available Slots</th>
-                    <th>Capacity</th>
+            </div>
 
-                </tr>
+        </div>
 
-            </thead>
+        <div class="card">
 
-            <tbody>
+            <h2>Upcoming Events</h2>
 
-                <?php foreach ($upcomingEvents as $event): ?>
+            <p class="page-description">
+                The next available events currently open for reservation.
+            </p>
 
-                    <tr>
+            <?php if (empty($upcomingEvents)): ?>
 
-                        <td>
-                            <?= htmlspecialchars($event['title']) ?>
-                        </td>
+                <p>No upcoming events found.</p>
 
-                        <td>
-                            <?= htmlspecialchars($event['event_date']) ?>
-                        </td>
+            <?php else: ?>
 
-                        <td>
-                            <?= htmlspecialchars($event['event_time']) ?>
-                        </td>
+                <div class="table-container">
 
-                        <td>
-                            <?= htmlspecialchars($event['venue']) ?>
-                        </td>
+                    <table>
 
-                        <td>
-                            <?= (int) $event['available_slots'] ?>
-                        </td>
+                        <thead>
 
-                        <td>
-                            <?= (int) $event['capacity'] ?>
-                        </td>
+                            <tr>
 
-                    </tr>
+                                <th>Event</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Venue</th>
+                                <th>Available Slots</th>
+                                <th>Capacity</th>
 
-                <?php endforeach; ?>
+                            </tr>
 
-            </tbody>
+                        </thead>
 
-        </table>
+                        <tbody>
 
-    <?php endif; ?>
+                            <?php foreach ($upcomingEvents as $event): ?>
 
+                                <tr>
 
-    <!-- Reservation Summary -->
+                                    <td>
+                                        <?= htmlspecialchars($event['title']) ?>
+                                    </td>
 
-    <h2>Reservation Summary</h2>
+                                    <td>
+                                        <?= htmlspecialchars($event['event_date']) ?>
+                                    </td>
 
-    <?php if (empty($reservationSummary)): ?>
+                                    <td>
+                                        <?= htmlspecialchars($event['event_time']) ?>
+                                    </td>
 
-        <p>No reservations found.</p>
+                                    <td>
+                                        <?= htmlspecialchars($event['venue']) ?>
+                                    </td>
 
-    <?php else: ?>
+                                    <td>
+                                        <?= (int) $event['available_slots'] ?>
+                                    </td>
 
-        <table border="1" cellpadding="8" cellspacing="0">
+                                    <td>
+                                        <?= (int) $event['capacity'] ?>
+                                    </td>
 
-            <thead>
+                                </tr>
 
-                <tr>
+                            <?php endforeach; ?>
 
-                    <th>Status</th>
-                    <th>Total</th>
+                        </tbody>
 
-                </tr>
+                    </table>
 
-            </thead>
+                </div>
 
-            <tbody>
+            <?php endif; ?>
 
-                <?php foreach ($reservationSummary as $summary): ?>
+        </div>
 
-                    <tr>
 
-                        <td>
-                            <?= htmlspecialchars($summary['status']) ?>
-                        </td>
+        <br>
 
-                        <td>
-                            <?= (int) $summary['total'] ?>
-                        </td>
 
-                    </tr>
+        <!-- Reservation Summary -->
 
-                <?php endforeach; ?>
+        <div class="card">
 
-            </tbody>
+            <h2>Reservation Summary</h2>
 
-        </table>
+            <?php if (empty($reservationSummary)): ?>
 
-    <?php endif; ?>
+                <p>No reservations found.</p>
+
+            <?php else: ?>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Status</th>
+                                <th>Total</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <?php foreach ($reservationSummary as $summary): ?>
+
+                                <tr>
+
+                                    <td>
+
+                                        <?php if ($summary['status'] === 'CONFIRMED'): ?>
+
+                                            <span class="status-badge status-open">
+                                                CONFIRMED
+                                            </span>
+
+                                        <?php elseif ($summary['status'] === 'CANCELLED'): ?>
+
+                                            <span class="status-badge status-cancelled">
+                                                CANCELLED
+                                            </span>
+
+                                        <?php else: ?>
+
+                                            <span class="status-badge status-closed">
+                                                <?= htmlspecialchars($summary['status']) ?>
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+                                    <td>
+                                        <?= (int) $summary['total'] ?>
+                                    </td>
+
+                                </tr>
+
+                            <?php endforeach; ?>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            <?php endif; ?>
+
+        </div>
+
+    </main>
+
+    <script src="../assets/js/navigation.js"></script>
 
 </body>
 

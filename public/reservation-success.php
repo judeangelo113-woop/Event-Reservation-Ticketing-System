@@ -5,23 +5,19 @@ require_once __DIR__ . '/../classes/Reservation.php';
 $reservationId = (int) ($_GET['id'] ?? 0);
 
 if ($reservationId <= 0) {
-    die("Invalid reservation.");
+    die('Invalid reservation.');
 }
 
 try {
-
     $reservationModel = new Reservation();
 
     $reservation = $reservationModel->getReservationById($reservationId);
 
     if ($reservation === null) {
-        die("Reservation not found.");
+        die('Reservation not found.');
     }
-
 } catch (Exception $e) {
-
-    die("Unable to load reservation.");
-
+    die('Unable to load reservation.');
 }
 
 ?>
@@ -38,81 +34,129 @@ try {
         content="width=device-width, initial-scale=1.0"
     >
 
+    <link rel="stylesheet" href="../assets/css/style.css">
+
     <title>Reservation Successful</title>
 
 </head>
 
 <body>
 
-    <h1>Reservation Successful!</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <p>
-        Your reservation has been successfully created.
-    </p>
+<div class="container">
 
-    <hr>
+    <div class="form-container reservation-success">
 
-    <h2>Reservation Details</h2>
+        <div class="success-header">
 
-    <p>
-        <strong>Reservation ID:</strong>
-        <?php echo $reservation['id']; ?>
-    </p>
+            <div class="success-icon">
+                ✓
+            </div>
 
-    <p>
-        <strong>Event:</strong>
-        <?php echo htmlspecialchars($reservation['event_title']); ?>
-    </p>
+            <h1>Reservation Successful!</h1>
 
-    <p>
-        <strong>Attendee:</strong>
-        <?php echo htmlspecialchars($reservation['attendee_name']); ?>
-    </p>
+            <p class="page-description">
+                Your reservation has been successfully created.
+            </p>
 
-    <p>
-        <strong>Email:</strong>
-        <?php echo htmlspecialchars($reservation['attendee_email']); ?>
-    </p>
+        </div>
 
-    <p>
-        <strong>Quantity:</strong>
-        <?php echo $reservation['quantity']; ?>
-    </p>
+        <div class="success-section">
 
-    <p>
-        <strong>Status:</strong>
-        <?php echo htmlspecialchars($reservation['status']); ?>
-    </p>
+            <h2>Reservation Details</h2>
 
-    <p>
-        <strong>Reservation Date:</strong>
-        <?php echo htmlspecialchars($reservation['reservation_date']); ?>
-    </p>
+            <div class="details-list">
 
-    <hr>
+                <p>
+                    <strong>Reservation ID:</strong>
+                    <?= (int) $reservation['id'] ?>
+                </p>
 
-<h2>Ticket Details</h2>
+                <p>
+                    <strong>Event:</strong>
+                    <?= htmlspecialchars($reservation['event_title']) ?>
+                </p>
 
-<p>
-    <strong>Ticket Number:</strong>
-    <?php echo htmlspecialchars($reservation['ticket_number']); ?>
-</p>
+                <p>
+                    <strong>Attendee:</strong>
+                    <?= htmlspecialchars($reservation['attendee_name']) ?>
+                </p>
 
-<p>
-    <strong>Ticket Status:</strong>
-    <?php echo htmlspecialchars($reservation['ticket_status']); ?>
-</p>
+                <p>
+                    <strong>Email:</strong>
+                    <?= htmlspecialchars($reservation['attendee_email']) ?>
+                </p>
 
-<p>
-    <strong>Issued At:</strong>
-    <?php echo htmlspecialchars($reservation['ticket_issued_at']); ?>
-</p>
+                <p>
+                    <strong>Quantity:</strong>
+                    <?= (int) $reservation['quantity'] ?>
+                </p>
 
-    <br>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="status-badge status-open">
+                        <?= htmlspecialchars($reservation['status']) ?>
+                    </span>
+                </p>
 
-    <a href="events.php">
-        Back to Events
-    </a>
+                <p>
+                    <strong>Reservation Date:</strong>
+                    <?= htmlspecialchars($reservation['reservation_date']) ?>
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="success-section">
+
+            <h2>Ticket Details</h2>
+
+            <div class="details-list">
+
+                <p>
+                    <strong>Ticket Number:</strong>
+                    <?= htmlspecialchars($reservation['ticket_number']) ?>
+                </p>
+
+                <p>
+                    <strong>Ticket Status:</strong>
+                    <span class="status-badge status-open">
+                        <?= htmlspecialchars($reservation['ticket_status']) ?>
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Issued At:</strong>
+                    <?= htmlspecialchars($reservation['ticket_issued_at']) ?>
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="success-actions">
+
+            <a href="events.php" class="btn btn-secondary">
+                Back to Events
+            </a>
+
+            <a href="reservations.php" class="btn btn-primary">
+                View Reservations
+            </a>
+
+            <a href="tickets.php" class="btn btn-primary">
+                View Tickets
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 

@@ -8,19 +8,18 @@ $eventModel = new Event();
 $eventId = (int) ($_GET['event_id'] ?? 0);
 
 if ($eventId <= 0) {
-    die("Invalid event.");
+    die('Invalid event.');
 }
 
 $event = $eventModel->getEventById($eventId);
 
 if ($event === null) {
-    die("Event not found.");
+    die('Event not found.');
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     $firstName = trim($_POST['first_name'] ?? '');
     $lastName = trim($_POST['last_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -28,29 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity = (int) ($_POST['quantity'] ?? 0);
 
     if ($firstName === '') {
-
-        $error = "First name is required.";
-
+        $error = 'First name is required.';
     } elseif ($lastName === '') {
-
-        $error = "Last name is required.";
-
+        $error = 'Last name is required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $error = "Please enter a valid email address.";
-
+        $error = 'Please enter a valid email address.';
     } elseif ($quantity <= 0) {
-
-        $error = "Quantity must be at least 1.";
-
+        $error = 'Quantity must be at least 1.';
     } elseif ($quantity > (int) $event['available_slots']) {
-
-        $error = "The requested quantity exceeds the available slots.";
-
+        $error = 'The requested quantity exceeds the available slots.';
     } else {
-
         try {
-
             $reservation = new Reservation(
                 $eventId,
                 0,
@@ -67,13 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             header(
-                "Location: reservation-success.php?id=" . $reservationId
+                'Location: reservation-success.php?id=' . $reservationId
             );
 
             exit;
-
         } catch (Exception $e) {
-
             $error = $e->getMessage();
         }
     }
@@ -85,169 +70,174 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../assets/css/style.css">
     <title>Make Reservation</title>
-
 </head>
 
 <body>
 
-    <h1>Make Reservation</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <h2>
-        <?php echo htmlspecialchars($event['title']); ?>
-    </h2>
+    <div class="container">
 
-    <p>
-        <strong>Date:</strong>
-        <?php echo htmlspecialchars($event['event_date']); ?>
-    </p>
+        <div class="form-container reservation-form">
 
-    <p>
-        <strong>Time:</strong>
-        <?php echo htmlspecialchars($event['event_time']); ?>
-    </p>
+            <div class="reservation-header">
 
-    <p>
-        <strong>Venue:</strong>
-        <?php echo htmlspecialchars($event['venue']); ?>
-    </p>
+                <h1>Make Reservation</h1>
 
-    <p>
-        <strong>Available Slots:</strong>
-        <?php echo $event['available_slots']; ?>
-    </p>
+                <p class="page-description">
+                    Reserve your slots for the selected event.
+                </p>
 
-    <?php if ($error !== ''): ?>
+            </div>
 
-        <p>
-            <strong>Error:</strong>
-            <?php echo htmlspecialchars($error); ?>
-        </p>
+    <div class="form-container">
 
-    <?php endif; ?>
+        <div class="event-summary">
 
-    <form method="POST" action="">
+            <h2 class="reservation-event-title">
+                <?= htmlspecialchars($event['title']) ?>
+            </h2>
 
-        <div>
+            <div class="event-details">
 
-            <label for="first_name">
-                First Name:
-            </label>
+                <p>
+                    <strong>Date:</strong>
+                    <?= htmlspecialchars($event['event_date']) ?>
+                </p>
 
-            <br>
+                <p>
+                    <strong>Time:</strong>
+                    <?= htmlspecialchars($event['event_time']) ?>
+                </p>
 
-            <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>"
-                required
-            >
+                <p>
+                    <strong>Venue:</strong>
+                    <?= htmlspecialchars($event['venue']) ?>
+                </p>
+
+                <p>
+                    <strong>Available Slots:</strong>
+                    <?= (int) $event['available_slots'] ?>
+                </p>
+
+            </div>
 
         </div>
 
-        <br>
+        <?php if ($error !== ''): ?>
 
-        <div>
+            <div class="error">
+                <?= htmlspecialchars($error) ?>
+            </div>
 
-            <label for="last_name">
-                Last Name:
-            </label>
+        <?php endif; ?>
 
-            <br>
+        <form method="POST" action="">
 
-            <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>"
-                required
-            >
+            <div class="form-group">
 
-        </div>
+                <label for="first_name">
+                    First Name
+                </label>
 
-        <br>
+                <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
+                    required
+                >
 
-        <div>
+            </div>
 
-            <label for="email">
-                Email:
-            </label>
+            <div class="form-group">
 
-            <br>
+                <label for="last_name">
+                    Last Name
+                </label>
 
-            <input
-                type="email"
-                id="email"
-                name="email"
-                value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
-                required
-            >
+                <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
+                    required
+                >
 
-        </div>
+            </div>
 
-        <br>
+            <div class="form-group">
 
-        <div>
+                <label for="email">
+                    Email
+                </label>
 
-            <label for="phone">
-                Phone:
-            </label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                    required
+                >
 
-            <br>
+            </div>
 
-            <input
-                type="text"
-                id="phone"
-                name="phone"
-                value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>"
-            >
+            <div class="form-group">
 
-        </div>
+                <label for="phone">
+                    Phone
+                </label>
 
-        <br>
+                <input
+                    type="text"
+                    id="phone"
+                    name="phone"
+                    value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
+                >
 
-        <div>
+            </div>
 
-            <label for="quantity">
-                Number of Slots:
-            </label>
+            <div class="form-group">
 
-            <br>
+                <label for="quantity">
+                    Number of Slots
+                </label>
 
-            <input
-                type="number"
-                id="quantity"
-                name="quantity"
-                min="1"
-                max="<?php echo $event['available_slots']; ?>"
-                value="<?php echo htmlspecialchars($_POST['quantity'] ?? '1'); ?>"
-                required
-            >
+                <input
+                    type="number"
+                    id="quantity"
+                    name="quantity"
+                    min="1"
+                    max="<?= (int) $event['available_slots'] ?>"
+                    value="<?= htmlspecialchars($_POST['quantity'] ?? '1') ?>"
+                    required
+                >
 
-        </div>
+            </div>
 
-        <br>
+            <div class="form-actions">
 
-        <button type="submit">
-            Reserve Now
-        </button>
+                <a href="events.php" class="btn btn-secondary">
+                    Back to Events
+                </a>
 
-    </form>
+                <button type="submit" class="btn btn-primary">
+                    Reserve Now
+                </button>
 
-    <br>
+            </div>
 
-    <a href="events.php">
-        Back to Events
-    </a>
+        </form>
+
+    </div>
+
+</div>
+
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 

@@ -27,7 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reservationModel->delete();
 
         header(
-            "Location: reservations.php?message=Reservation+deleted+successfully"
+            'Location: reservations.php?message=' .
+            urlencode('Reservation deleted successfully')
         );
 
         exit;
@@ -44,65 +45,117 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Delete Reservation</title>
+
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
+
 </head>
 
 <body>
 
-    <h1>Delete Reservation</h1>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
+
+<main class="container">
+
+    <div class="form-header">
+
+        <h1>Delete Reservation</h1>
+
+        <p>
+            Review the reservation details before deleting it.
+        </p>
+
+    </div>
+
+    <a
+        href="reservations.php"
+        class="btn btn-secondary back-button"
+    >
+        ← Back to Reservation Management
+    </a>
 
     <?php if ($error !== ''): ?>
 
-        <p>
+        <div class="error">
+
             <?= htmlspecialchars($error) ?>
-        </p>
+
+        </div>
 
     <?php endif; ?>
 
-    <p>
-        Are you sure you want to delete this reservation?
-    </p>
+    <div class="form-container">
 
-    <p>
-        <strong>Event:</strong>
-        <?= htmlspecialchars($reservation['event_title']) ?>
-    </p>
+        <h2>Confirm Deletion</h2>
 
-    <p>
-        <strong>Attendee:</strong>
-        <?= htmlspecialchars($reservation['attendee_name']) ?>
-    </p>
+        <p>
+            Are you sure you want to delete this reservation?
+        </p>
 
-    <p>
-        <strong>Quantity:</strong>
-        <?= (int) $reservation['quantity'] ?>
-    </p>
+        <div class="delete-details">
 
-    <p>
-        <strong>Status:</strong>
-        <?= htmlspecialchars($reservation['status']) ?>
-    </p>
+            <p>
+                <strong>Event:</strong>
+                <?= htmlspecialchars($reservation['event_title']) ?>
+            </p>
 
-    <form method="POST">
+            <p>
+                <strong>Attendee:</strong>
+                <?= htmlspecialchars($reservation['attendee_name']) ?>
+            </p>
 
-        <input
-            type="hidden"
-            name="id"
-            value="<?= (int) $reservationId ?>"
-        >
+            <p>
+                <strong>Quantity:</strong>
+                <?= (int) $reservation['quantity'] ?>
+            </p>
 
-        <button type="submit">
-            Yes, Delete Reservation
-        </button>
+            <p>
+                <strong>Status:</strong>
+                <?= htmlspecialchars($reservation['status']) ?>
+            </p>
 
-        <a href="reservations.php">
-            Cancel
-        </a>
+        </div>
 
-    </form>
+        <form method="POST">
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int) $reservationId ?>"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Yes, Delete Reservation
+            </button>
+
+            <a
+                href="reservations.php"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+        </form>
+
+    </div>
+
+</main>
+
+<script src="../assets/js/navigation.js"></script>
 
 </body>
 
