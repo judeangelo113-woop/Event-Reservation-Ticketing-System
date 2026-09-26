@@ -2,9 +2,9 @@
 
     <div class="container navbar-container">
 
-        <a href="/Event%20Reservation%20%26%20Ticketing%20System/admin/dashboard.php" class="navbar-brand">
+        <a href="../public/dashboard.php" class="navbar-brand">
             Event Ticketing
-        </a>
+        </a>    
 
         <button
             class="menu-toggle"
