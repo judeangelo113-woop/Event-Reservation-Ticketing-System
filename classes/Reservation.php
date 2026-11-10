@@ -418,7 +418,8 @@ class Reservation extends BaseModel implements Reservable
         string $firstName,
         string $lastName,
         string $email,
-        string $phone
+        string $phone,
+        ?int $registeredAttendeeId = null
     ): int {
         if ($this->eventId <= 0) {
             throw new Exception("Invalid event.");
@@ -472,15 +473,35 @@ class Reservation extends BaseModel implements Reservable
                 throw new Exception("Not enough available slots.");
             }
 
-            /*
-            * 2. Find attendee using the SAME PDO connection.
-            */
-            $sql = "SELECT
-                        id,
-                        first_name,
-                        last_name,
-                        email,
-                        phone
+        /*
+        * 2. Identify the attendee.
+        * Use the registered attendee ID when provided.
+        */
+        if ($registeredAttendeeId !== null && $registeredAttendeeId > 0) {
+
+            $sql = "SELECT id
+                    FROM attendees
+                    WHERE id = :attendee_id
+                    FOR UPDATE";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->execute([
+                ':attendee_id' => $registeredAttendeeId
+            ]);
+
+            $attendee = $stmt->fetch();
+
+            if ($attendee === false) {
+                throw new Exception("Attendee account not found.");
+            }
+
+            $this->attendeeId = (int) $attendee['id'];
+
+        } else {
+
+            // Existing guest reservation behavior
+            $sql = "SELECT id
                     FROM attendees
                     WHERE email = :email";
 
@@ -492,25 +513,12 @@ class Reservation extends BaseModel implements Reservable
 
             $attendee = $stmt->fetch();
 
-            /*
-            * 3. Create attendee if they don't exist.
-            */
             if ($attendee === false) {
 
                 $sql = "INSERT INTO attendees
-                        (
-                            first_name,
-                            last_name,
-                            email,
-                            phone
-                        )
+                        (first_name, last_name, email, phone)
                         VALUES
-                        (
-                            :first_name,
-                            :last_name,
-                            :email,
-                            :phone
-                        )";
+                        (:first_name, :last_name, :email, :phone)";
 
                 $stmt = $this->db->prepare($sql);
 
@@ -527,6 +535,7 @@ class Reservation extends BaseModel implements Reservable
 
                 $this->attendeeId = (int) $attendee['id'];
             }
+        }
 
             /*
             * 4. Create the reservation.
@@ -575,38 +584,52 @@ class Reservation extends BaseModel implements Reservable
                 ':event_id' => $this->eventId
             ]);
 
+            
             /*
-            * 6. Generate a unique ticket number.
-            */
+        * 6. Generate and create tickets based on reservation quantity.
+        */
+
+        $sql = "INSERT INTO tickets
+                (
+                    reservation_id,
+                    ticket_number,
+                    issued_at,
+                    status
+                )
+                VALUES
+                (
+                    :reservation_id,
+                    :ticket_number,
+                    CURRENT_TIMESTAMP,
+                    :status
+                )";
+
+        $stmt = $this->db->prepare($sql);
+
+        for ($i = 1; $i <= $this->quantity; $i++) {
+
             $ticketNumber = 'TKT-' . date('YmdHis') . '-' . strtoupper(
                 bin2hex(random_bytes(3))
             );
-
-            /*
-            * 7. Create the ticket.
-            */
-            $sql = "INSERT INTO tickets
-                    (
-                        reservation_id,
-                        ticket_number,
-                        issued_at,
-                        status
-                    )
-                    VALUES
-                    (
-                        :reservation_id,
-                        :ticket_number,
-                        CURRENT_TIMESTAMP,
-                        :status
-                    )";
-
-            $stmt = $this->db->prepare($sql);
 
             $stmt->execute([
                 ':reservation_id' => $reservationId,
                 ':ticket_number' => $ticketNumber,
                 ':status' => 'VALID'
             ]);
+
+        } // This closes the for loop.
+
+        /*
+        * 7. Everything succeeded.
+        * Commit the entire transaction.
+        */
+
+        $this->db->commit();
+
+        $this->id = $reservationId;
+
+        return $reservationId;
 
             /*
             * 8. Everything succeeded.

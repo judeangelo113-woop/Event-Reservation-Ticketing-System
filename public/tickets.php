@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/../includes/require_admin.php';
 require_once __DIR__ . '/../classes/Ticket.php';
 
 $ticketModel = new Ticket();

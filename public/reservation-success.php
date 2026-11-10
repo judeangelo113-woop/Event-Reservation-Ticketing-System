@@ -1,6 +1,8 @@
+
 <?php
 
 require_once __DIR__ . '/../classes/Reservation.php';
+require_once __DIR__ . '/../config/Database.php';
 
 $reservationId = (int) ($_GET['id'] ?? 0);
 
@@ -16,6 +18,24 @@ try {
     if ($reservation === null) {
         die('Reservation not found.');
     }
+
+    // Get all tickets belonging to this reservation.
+    $database = new Database();
+    $db = $database->connect();
+
+    $sql = "SELECT ticket_number, status, issued_at
+            FROM tickets
+            WHERE reservation_id = :reservation_id
+            ORDER BY id ASC";
+
+    $stmt = $db->prepare($sql);
+
+    $stmt->execute([
+        ':reservation_id' => $reservationId
+    ]);
+
+    $tickets = $stmt->fetchAll();
+
 } catch (Exception $e) {
     die('Unable to load reservation.');
 }
@@ -113,40 +133,58 @@ try {
 
             <h2>Ticket Details</h2>
 
-            <div class="details-list">
+            <?php if (!empty($tickets)): ?>
 
-                <p>
-                    <strong>Ticket Number:</strong>
-                    <?= htmlspecialchars($reservation['ticket_number']) ?>
-                </p>
+                <?php foreach ($tickets as $index => $ticket): ?>
 
-                <p>
-                    <strong>Ticket Status:</strong>
-                    <span class="status-badge status-open">
-                        <?= htmlspecialchars($reservation['ticket_status']) ?>
-                    </span>
-                </p>
+                    <div class="details-list">
 
-                <p>
-                    <strong>Issued At:</strong>
-                    <?= htmlspecialchars($reservation['ticket_issued_at']) ?>
-                </p>
+                        <h3>Ticket <?= $index + 1 ?></h3>
 
-            </div>
+                        <p>
+                            <strong>Ticket Number:</strong>
+                            <?= htmlspecialchars($ticket['ticket_number']) ?>
+                        </p>
+
+                        <p>
+                            <strong>Ticket Status:</strong>
+                            <span class="status-badge status-open">
+                                <?= htmlspecialchars($ticket['status']) ?>
+                            </span>
+                        </p>
+
+                        <p>
+                            <strong>Issued At:</strong>
+                            <?= htmlspecialchars($ticket['issued_at']) ?>
+                        </p>
+
+                    </div>
+
+                    <?php if ($index < count($tickets) - 1): ?>
+                        <hr>
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+
+            <?php else: ?>
+
+                <p>No tickets found for this reservation.</p>
+
+            <?php endif; ?>
 
         </div>
 
         <div class="success-actions">
 
-            <a href="events.php" class="btn btn-secondary">
+            <a href="browse-events.php" class="btn btn-secondary">
                 Back to Events
             </a>
 
-            <a href="reservations.php" class="btn btn-primary">
-                View Reservations
+            <a href="my-reservations.php?id=<?= (int) $reservation['id'] ?>" class="btn btn-primary">
+                View Reservation
             </a>
 
-            <a href="tickets.php" class="btn btn-primary">
+            <a href="my-tickets.php?reservation_id=<?= (int) $reservation['id'] ?>" class="btn btn-primary">
                 View Tickets
             </a>
 

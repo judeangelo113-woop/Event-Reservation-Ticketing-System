@@ -487,3 +487,299 @@ table .btn {
 .success-actions .btn {
     margin: 0;
 }
+
+/* Attendee Registration */
+
+.register-container {
+    max-width: 450px;
+    margin: 30px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.register-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.register-container label {
+    display: block;
+    margin-top: 12px;
+}
+
+.register-container input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+.register-container button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.register-container button:hover {
+    background: #1d4ed8;
+}
+
+.register-container .error {
+    color: #b91c1c;
+    background: #fee2e2;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.register-container .success {
+    color: #166534;
+    background: #dcfce7;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.register-container .login-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+
+/* LOGIN PAGE */
+
+.login-container {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-container h2,
+.login-container h3 {
+    text-align: center;
+}
+
+.login-container label {
+    display: block;
+    margin-top: 15px;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+.login-container button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.login-container button:hover {
+    background: #1d4ed8;
+}
+
+.login-error {
+    color: #b91c1c;
+    background: #fee2e2;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.register-link {
+    text-align: center;
+    margin-top: 20px;
+}
+
+
+/* ATTENDEE REGISTRATION PAGE */
+
+.register-container {
+    max-width: 450px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.register-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.register-container label {
+    display: block;
+    margin-top: 12px;
+}
+
+.register-container input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+.register-container button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.register-container button:hover {
+    background: #1d4ed8;
+}
+
+.register-container .error {
+    color: #b91c1c;
+    background: #fee2e2;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.register-container .success {
+    color: #166534;
+    background: #dcfce7;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.register-container .login-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+
+/* ATTENDEE DASHBOARD */
+
+.attendee-dashboard {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 25px;
+}
+
+.attendee-dashboard h2 {
+    margin-bottom: 20px;
+}
+
+.attendee-profile {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.attendee-profile p {
+    padding: 8px 0;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.dashboard-error {
+    color: #b91c1c;
+    background: #fee2e2;
+    padding: 12px;
+    border-radius: 5px;
+}
+
+
+/* ATTENDEE BROWSE EVENTS PAGE */
+
+.browse-events-container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 25px;
+}
+
+.browse-events-container h2 {
+    margin-bottom: 10px;
+}
+
+.browse-events-subtitle {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.event-card {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.event-card h3 {
+    margin-bottom: 12px;
+}
+
+.event-card p {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.event-details {
+    margin-top: 20px;
+}
+
+.reserve-button,
+.sold-out-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 15px;
+}
+
+.reserve-button {
+    background: #2563eb;
+    color: white;
+    text-decoration: none;
+}
+
+.reserve-button:hover {
+    background: #1d4ed8;
+}
+
+.sold-out-button {
+    background: #999;
+    color: white;
+    cursor: not-allowed;
+}
+
+.no-events,
+.browse-events-error {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+

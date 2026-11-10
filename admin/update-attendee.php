@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../classes/Attendee.php';
+require_once __DIR__ . '/../includes/require_admin.php';
 
 $errors = [];
 

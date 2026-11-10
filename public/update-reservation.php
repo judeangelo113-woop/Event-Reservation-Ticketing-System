@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/../includes/require_admin.php';
 require_once __DIR__ . '/../classes/Reservation.php';
 require_once __DIR__ . '/../classes/Event.php';
 require_once __DIR__ . '/../classes/Attendee.php';

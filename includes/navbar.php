@@ -1,10 +1,15 @@
+
+<?php
+require_once __DIR__ . '/auth.php';
+?>
+
 <nav class="navbar">
 
     <div class="container navbar-container">
 
         <a href="../public/dashboard.php" class="navbar-brand">
             Event Ticketing
-        </a>    
+        </a>
 
         <button
             class="menu-toggle"
@@ -16,27 +21,34 @@
             ☰
         </button>
 
-        <div class="nav-links" id="navLinks">
+                <div class="nav-links" id="navLinks">
 
-            <a href="../public/dashboard.php">
-                Dashboard
-            </a>
+            <?php if (isAdmin()): ?>
 
-            <a href="../public/events.php">
-                Events
-            </a>
+                <a href="../public/dashboard.php">Dashboard</a>
+                <a href="../public/events.php">Events</a>
+                <a href="../public/attendees.php">Attendees</a>
+                <a href="../public/reservations.php">Reservations</a>
+                <a href="../public/tickets.php">Tickets</a>
 
-            <a href="../public/attendees.php">
-                Attendees
-            </a>
+            <?php elseif (isAttendee()): ?>
 
-            <a href="../public/reservations.php">
-                Reservations
-            </a>
+                <a href="../public/attendee-dashboard.php">Dashboard</a>
+                <a href="../public/browse-events.php">Browse Events</a>
+                <a href="../public/my-reservations.php">My Reservations</a>
+                <a href="../public/my-tickets.php">My Tickets</a>
 
-            <a href="../public/tickets.php">
-                Tickets
-            </a>
+
+            <?php endif; ?>
+
+            <form action="../public/logout.php" method="POST" style="display: inline;">
+                <input type="hidden" name="csrf_token"
+                    value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+
+                <button type="submit">
+                    Logout (<?= htmlspecialchars($_SESSION['username']) ?>)
+                </button>
+            </form>
 
         </div>
 

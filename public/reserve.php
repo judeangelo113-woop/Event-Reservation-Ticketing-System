@@ -1,7 +1,15 @@
 <?php
 
+require_once __DIR__ . '/../includes/require_login.php';
 require_once __DIR__ . '/../classes/Event.php';
 require_once __DIR__ . '/../classes/Reservation.php';
+require_once __DIR__ . '/../config/Database.php';
+
+// Only attendees can reserve tickets.
+if (!isAttendee()) {
+    header('Location: dashboard.php');
+    exit;
+}
 
 $eventModel = new Event();
 
@@ -18,48 +26,79 @@ if ($event === null) {
 }
 
 $error = '';
+$attendee = null;
+
+try {
+    $database = new Database();
+    $pdo = $database->connect();
+
+    $stmt = $pdo->prepare(
+        "SELECT first_name, last_name, email, phone
+         FROM attendees
+         WHERE id = :attendee_id
+         LIMIT 1"
+    );
+
+    $stmt->execute([
+        ':attendee_id' => $_SESSION['attendee_id']
+    ]);
+
+    $attendee = $stmt->fetch();
+
+    if (!$attendee) {
+        die('Attendee account not found.');
+    }
+
+} catch (PDOException $e) {
+    die('Unable to load attendee information.');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $firstName = trim($_POST['first_name'] ?? '');
-    $lastName = trim($_POST['last_name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $quantity = (int) ($_POST['quantity'] ?? 0);
 
-    if ($firstName === '') {
-        $error = 'First name is required.';
-    } elseif ($lastName === '') {
-        $error = 'Last name is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address.';
-    } elseif ($quantity <= 0) {
-        $error = 'Quantity must be at least 1.';
-    } elseif ($quantity > (int) $event['available_slots']) {
-        $error = 'The requested quantity exceeds the available slots.';
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
+
+        $error = 'Invalid request. Please try again.';
+
     } else {
-        try {
-            $reservation = new Reservation(
-                $eventId,
-                0,
-                $quantity,
-                '',
-                'PENDING'
-            );
 
-            $reservationId = $reservation->createReservationTransaction(
-                $firstName,
-                $lastName,
-                $email,
-                $phone
-            );
+        $quantity = (int) ($_POST['quantity'] ?? 0);
 
-            header(
-                'Location: reservation-success.php?id=' . $reservationId
-            );
+        if ($quantity <= 0) {
 
-            exit;
-        } catch (Exception $e) {
-            $error = $e->getMessage();
+            $error = 'Please enter a valid ticket quantity.';
+
+        } elseif ($quantity > (int) $event['available_slots']) {
+
+            $error = 'Not enough available slots.';
+
+        } else {
+
+            try {
+
+                $reservation = new Reservation(
+                    $eventId,
+                    (int) $_SESSION['attendee_id'],
+                    $quantity,
+                    '',
+                    'PENDING'
+                );
+
+                $reservationId = $reservation->createReservationTransaction(
+                    $attendee['first_name'],
+                    $attendee['last_name'],
+                    $attendee['email'],
+                    $attendee['phone'] ?? '',
+                    (int) $_SESSION['attendee_id']
+                );
+
+                header('Location: reservation-success.php?id=' . $reservationId);
+                exit;
+
+            } catch (Exception $e) {
+
+                $error = $e->getMessage();
+
+            }
         }
     }
 }
@@ -138,19 +177,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="">
 
+        <input type="hidden" name="csrf_token"
+            value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+
             <div class="form-group">
 
                 <label for="first_name">
                     First Name
                 </label>
 
-                <input
-                    type="text"
-                    id="first_name"
-                    name="first_name"
-                    value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
-                    required
-                >
 
             </div>
 
@@ -160,13 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Last Name
                 </label>
 
-                <input
-                    type="text"
-                    id="last_name"
-                    name="last_name"
-                    value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
-                    required
-                >
 
             </div>
 
@@ -176,14 +204,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Email
                 </label>
 
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                    required
-                >
-
             </div>
 
             <div class="form-group">
@@ -191,13 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="phone">
                     Phone
                 </label>
-
-                <input
-                    type="text"
-                    id="phone"
-                    name="phone"
-                    value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
-                >
 
             </div>
 
