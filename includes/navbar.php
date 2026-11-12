@@ -30,6 +30,9 @@ require_once __DIR__ . '/auth.php';
                 <a href="../public/attendees.php">Attendees</a>
                 <a href="../public/reservations.php">Reservations</a>
                 <a href="../public/tickets.php">Tickets</a>
+                <a href="http://localhost:8000/events" target="_blank">
+                    Laravel Events Module
+                </a>
 
             <?php elseif (isAttendee()): ?>
 
