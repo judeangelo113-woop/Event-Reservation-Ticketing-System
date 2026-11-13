@@ -15,7 +15,10 @@ $status = 'OPEN';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
+        die('Invalid CSRF token. Please refresh the page and try again.');
+    }
+
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $eventDate = trim($_POST['event_date'] ?? '');
@@ -24,24 +27,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $capacity = trim($_POST['capacity'] ?? '');
     $status = trim($_POST['status'] ?? 'OPEN');
 
-
-
+    // Validate event title
     if ($title === '') {
         $errors[] = 'Event title is required.';
     }
 
+    // Validate event date
     if ($eventDate === '') {
         $errors[] = 'Event date is required.';
     }
 
+    // Validate event time
     if ($eventTime === '') {
         $errors[] = 'Event time is required.';
     }
 
+    // Validate venue
     if ($venue === '') {
         $errors[] = 'Venue is required.';
     }
 
+    // Validate capacity
     if ($capacity === '') {
         $errors[] = 'Capacity is required.';
     } elseif (filter_var($capacity, FILTER_VALIDATE_INT) === false) {
@@ -50,14 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Capacity must be greater than zero.';
     }
 
+    // Validate status
     $allowedStatuses = ['OPEN', 'CLOSED', 'CANCELLED'];
 
     if (!in_array($status, $allowedStatuses, true)) {
         $errors[] = 'Invalid event status.';
     }
 
-    
-
+    // Create event
     if (empty($errors)) {
 
         try {
@@ -68,8 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $eventDate,
                 $eventTime,
                 $venue,
-                (int)$capacity,
-                (int)$capacity,
+                (int) $capacity,
+                (int) $capacity,
                 $status
             );
 
@@ -81,13 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
 
                 $errors[] = 'Failed to create the event.';
+
             }
 
         } catch (Exception $e) {
 
             $errors[] = 'An error occurred while creating the event.';
+
         }
+
     }
+
 }
 
 ?>
@@ -99,44 +109,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="../assets/css/style.css">
 
-    <title>Create Event</title>
+    <title>Create Event | EventlyPH</title>
 
 </head>
 
 <body>
 
-    <?php
-        require_once __DIR__ . '/../includes/navbar.php'; 
-    ?>
+<?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <div class="container">
+<main class="container event-form-page">
 
-        <div class="form-header">
-                <h1>Create New Event</h1>
+    <!-- PAGE HEADER -->
+    <section class="event-form-heading">
+
+        <div>
+
+            <span class="event-form-eyebrow">EVENT MANAGEMENT</span>
+
+            <h1>Create New Event</h1>
+
+            <p>
+                Fill in the event details to publish a new event on EventlyPH.
+            </p>
+
         </div>
 
-    <div class="form-container">
-    
-        <?php if (!empty($errors)): ?>
+        <a href="events.php" class="event-back-button">
+            ← Back to Events
+        </a>
+
+    </section>
+
+    <!-- FORM CARD -->
+    <section class="event-form-card">
+
+        <div class="event-form-card-heading">
+
+            <div class="event-form-icon">+</div>
 
             <div>
+                <h2>Event Information</h2>
+                <p>Enter the required information below.</p>
+            </div>
 
-                <strong>Please fix the following errors:</strong>
+        </div>
+
+        <!-- VALIDATION ERRORS -->
+        <?php if (!empty($errors)): ?>
+
+            <div class="event-form-errors">
+
+                <strong>Please check the following:</strong>
 
                 <ul>
 
                     <?php foreach ($errors as $error): ?>
 
-                        <li>
-                            <?php echo htmlspecialchars($error); ?>
-                        </li>
+                        <li><?= htmlspecialchars($error) ?></li>
 
                     <?php endforeach; ?>
 
@@ -146,27 +179,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php endif; ?>
 
-
-        <form method="POST" action="">
-
-            <div class="form-group">
-
-            <label for="title">
-                Event Title
-            </label>
+        <form method="POST" action="" class="event-modern-form">
 
             <input
-                type="text"
-                name="title"
-                id="title"
-                value="<?= htmlspecialchars($title) ?>"
-                required
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
             >
 
+            <!-- EVENT TITLE -->
+            <div class="event-form-group event-form-full">
+
+                <label for="title">
+                    Event Title <span>*</span>
+                </label>
+
+                <input
+                    type="text"
+                    name="title"
+                    id="title"
+                    placeholder="Enter event title"
+                    value="<?= htmlspecialchars($title) ?>"
+                    required
+                >
+
             </div>
-        
-        <br>
-            <div class="form-group">
+
+            <!-- DESCRIPTION -->
+            <div class="event-form-group event-form-full">
 
                 <label for="description">
                     Description
@@ -175,21 +215,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <textarea
                     name="description"
                     id="description"
-                >
-
-                <?= htmlspecialchars($description) ?>
-            
-                </textarea>
+                    rows="5"
+                    placeholder="Enter a short description of the event..."
+                ><?= htmlspecialchars($description) ?></textarea>
 
             </div>
 
-            <br>
+            <!-- EVENT DATE -->
+            <div class="event-form-group">
 
+                <label for="event_date">
+                    Event Date <span>*</span>
+                </label>
 
-            <div class="form-group">
+                <input
+                    type="date"
+                    name="event_date"
+                    id="event_date"
+                    value="<?= htmlspecialchars($eventDate) ?>"
+                    required
+                >
+
+            </div>
+
+            <!-- EVENT TIME -->
+            <div class="event-form-group">
+
+                <label for="event_time">
+                    Event Time <span>*</span>
+                </label>
+
+                <input
+                    type="time"
+                    name="event_time"
+                    id="event_time"
+                    value="<?= htmlspecialchars($eventTime) ?>"
+                    required
+                >
+
+            </div>
+
+            <!-- VENUE -->
+            <div class="event-form-group event-form-full">
+
+                <label for="venue">
+                    Venue <span>*</span>
+                </label>
+
+                <input
+                    type="text"
+                    name="venue"
+                    id="venue"
+                    placeholder="Enter event location or venue"
+                    value="<?= htmlspecialchars($venue) ?>"
+                    required
+                >
+
+            </div>
+
+            <!-- CAPACITY -->
+            <div class="event-form-group">
 
                 <label for="capacity">
-                    Capacity
+                    Event Capacity <span>*</span>
                 </label>
 
                 <input
@@ -197,135 +285,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name="capacity"
                     id="capacity"
                     min="1"
+                    placeholder="Enter maximum attendees"
+                    value="<?= htmlspecialchars($capacity) ?>"
                     required
                 >
 
-            </div>
-
-            <br>
-
-
-            <div>
-
-                <label for="event_date">
-                    Event Date:
-                </label>
-
-                <br>
-
-                <input
-                    type="date"
-                    id="event_date"
-                    name="event_date"
-                    value="<?php echo htmlspecialchars($eventDate); ?>"
-                    required
-                >
+                <small>Maximum number of attendees allowed.</small>
 
             </div>
 
-            <br>
-
-
-            <div>
-
-                <label for="event_time">
-                    Event Time:
-                </label>
-
-                <br>
-
-                <input
-                    type="time"
-                    id="event_time"
-                    name="event_time"
-                    value="<?php echo htmlspecialchars($eventTime); ?>"
-                    required
-                >
-
-            </div>
-
-            <br>
-
-
-            <div>
-
-                <label for="venue">
-                    Venue:
-                </label>
-
-                <br>
-
-                <input
-                    type="text"
-                    id="venue"
-                    name="venue"
-                    value="<?php echo htmlspecialchars($venue); ?>"
-                    required
-                >
-
-            </div>
-
-            <br>
-
-            <br>
-
-
-            <div>
+            <!-- STATUS -->
+            <div class="event-form-group">
 
                 <label for="status">
-                    Status:
+                    Event Status <span>*</span>
                 </label>
 
-                <br>
+                <select id="status" name="status" required>
 
-                <select
-                    id="status"
-                    name="status"
-                >
-
-                    <option
-                        value="OPEN"
-                        <?php echo $status === 'OPEN' ? 'selected' : ''; ?>
-                    >
+                    <option value="OPEN"
+                        <?= $status === 'OPEN' ? 'selected' : '' ?>>
                         OPEN
                     </option>
 
-                    <option
-                        value="CLOSED"
-                        <?php echo $status === 'CLOSED' ? 'selected' : ''; ?>
-                    >
+                    <option value="CLOSED"
+                        <?= $status === 'CLOSED' ? 'selected' : '' ?>>
                         CLOSED
                     </option>
 
-                    <option
-                        value="CANCELLED"
-                        <?php echo $status === 'CANCELLED' ? 'selected' : ''; ?>
-                    >
+                    <option value="CANCELLED"
+                        <?= $status === 'CANCELLED' ? 'selected' : '' ?>>
                         CANCELLED
                     </option>
 
                 </select>
 
+                <small>Choose the current availability of the event.</small>
+
             </div>
 
-            <br>
+            <!-- FORM ACTIONS -->
+            <div class="event-form-actions event-form-full">
 
-            <button type="submit" class="btn btn-primary">
-                Create Event
-            </button>
+                <a href="events.php" class="event-cancel-button">
+                    Cancel
+                </a>
 
-            <a href="events.php" class="btn btn-secondary">
-                Cancel
-            </a>
+                <button type="submit" class="event-submit-button">
+                    + Create Event
+                </button>
+
+            </div>
 
         </form>
 
-    </div>
+    </section>
 
-</div>
+</main>
 
-    <script src="../assets/js/navigation.js"></script>
+<script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

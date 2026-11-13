@@ -120,7 +120,8 @@ class Ticket extends BaseModel
     }
 
     //get all tickets
-    public function getAllTickets(): array
+
+    public function getAllTickets(int $limit = 5, int $offset = 0): array
     {
         $sql = "SELECT
                     t.id,
@@ -141,14 +142,19 @@ class Ticket extends BaseModel
                     ON r.event_id = e.id
                 INNER JOIN attendees a
                     ON r.attendee_id = a.id
-                ORDER BY t.issued_at DESC";
+                ORDER BY t.issued_at DESC
+                LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
         $stmt->execute();
 
         return $stmt->fetchAll();
     }
+
     
     //get ticket by Id
     public function getTicketById(int $id): ?array
@@ -218,4 +224,14 @@ class Ticket extends BaseModel
             ':id' => $this->id
         ]);
     }
+
+    // Count all tickets
+public function countAllTickets(): int
+{
+    $sql = "SELECT COUNT(*) FROM tickets";
+
+    $stmt = $this->db->query($sql);
+
+    return (int) $stmt->fetchColumn();
+}
 }

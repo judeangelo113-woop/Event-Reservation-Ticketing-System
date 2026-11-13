@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_admin.php';
@@ -15,69 +16,90 @@ if ($reservationId <= 0) {
     die('Invalid reservation.');
 }
 
-$reservation = $reservationModel->getReservationById($reservationId);
-
-if ($reservation === null) {
-    die('Reservation not found.');
-}
-
-$events = $eventModel->getAllEvents();
-$attendees = $attendeeModel->getAllAttendees();
-
 $error = '';
 
-$eventId = (int) $reservation['event_id'];
-$attendeeId = (int) $reservation['attendee_id'];
-$quantity = (int) $reservation['quantity'];
-$status = $reservation['status'];
+$eventId = 0;
+$attendeeId = 0;
+$quantity = 1;
+$status = 'CONFIRMED';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+try {
 
-    $eventId = (int) ($_POST['event_id'] ?? 0);
-    $attendeeId = (int) ($_POST['attendee_id'] ?? 0);
-    $quantity = (int) ($_POST['quantity'] ?? 0);
-    $status = trim($_POST['status'] ?? '');
+    $reservation = $reservationModel->getReservationById($reservationId);
 
-    if ($eventId <= 0) {
+    if ($reservation === null) {
+        die('Reservation not found.');
+    }
 
-        $error = 'Please select an event.';
+    $events = $eventModel->getAllEvents();
+    $attendees = $attendeeModel->getAllAttendees();
 
-    } elseif ($attendeeId <= 0) {
+    // INITIAL VALUES
 
-        $error = 'Please select an attendee.';
+    $eventId = (int) $reservation['event_id'];
+    $attendeeId = (int) $reservation['attendee_id'];
+    $quantity = (int) $reservation['quantity'];
+    $status = $reservation['status'];
 
-    } elseif ($quantity <= 0) {
+    // PROCESS FORM
 
-        $error = 'Quantity must be greater than zero.';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    } elseif (!in_array($status, ['CONFIRMED', 'CANCELLED'], true)) {
+        if (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
 
-        $error = 'Invalid reservation status.';
+            $error = 'Invalid or expired request. Please refresh the page and try again.';
 
-    } else {
+        } else {
 
-        try {
+            $eventId = (int) ($_POST['event_id'] ?? 0);
+            $attendeeId = (int) ($_POST['attendee_id'] ?? 0);
+            $quantity = (int) ($_POST['quantity'] ?? 0);
+            $status = trim($_POST['status'] ?? '');
 
-            $reservationModel->setId($reservationId);
-            $reservationModel->setEventId($eventId);
-            $reservationModel->setAttendeeId($attendeeId);
-            $reservationModel->setQuantity($quantity);
-            $reservationModel->setStatus($status);
+            if ($eventId <= 0) {
 
-            $reservationModel->update();
+                $error = 'Please select an event.';
 
-            header(
-                'Location: reservations.php?message=' .
-                urlencode('Reservation updated successfully')
-            );
+            } elseif ($attendeeId <= 0) {
 
-            exit;
+                $error = 'Please select an attendee.';
 
-        } catch (Exception $e) {
+            } elseif ($quantity <= 0) {
 
-            $error = $e->getMessage();
+                $error = 'Quantity must be greater than zero.';
+
+            } elseif (!in_array($status, ['CONFIRMED', 'CANCELLED'], true)) {
+
+                $error = 'Invalid reservation status.';
+
+            } else {
+
+                $reservationModel->setId($reservationId);
+                $reservationModel->setEventId($eventId);
+                $reservationModel->setAttendeeId($attendeeId);
+                $reservationModel->setQuantity($quantity);
+                $reservationModel->setStatus($status);
+
+                if ($reservationModel->update()) {
+
+                    header(
+                        'Location: ../public/reservations.php?message=' .
+                        urlencode('Reservation updated successfully')
+                    );
+
+                    exit;
+
+                } else {
+
+                    $error = 'Failed to update the reservation.';
+                }
+            }
         }
     }
+
+} catch (Exception $e) {
+
+    $error = $e->getMessage();
 }
 
 ?>
@@ -86,59 +108,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Update Reservation | EventlyPH</title>
 
-    <title>Update Reservation</title>
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
-
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<main class="container">
+<main class="container reservation-form-page">
 
-    <div class="form-header">
+    <div class="reservation-form-header">
+        <div>
+            <span class="reservation-form-label">
+                RESERVATION MANAGEMENT
+            </span>
 
-        <h1>Update Reservation</h1>
+            <h1>Update Reservation</h1>
 
-        <p>
-            Update the event, attendee, quantity, or reservation status.
-        </p>
-
+            <p>
+                Modify the event, attendee, ticket quantity, or reservation status.
+            </p>
+        </div>
     </div>
 
-    <a
-        href="reservations.php"
-        class="btn btn-secondary back-button"
-    >
-        ← Back to Reservation Management
+    <a href="../public/reservations.php"
+       class="reservation-form-back">
+        &larr; Back to Reservations
     </a>
 
     <?php if ($error !== ''): ?>
 
-        <div class="error">
-
-            <?= htmlspecialchars($error) ?>
-
+        <div class="reservation-form-error">
+            <strong>Unable to update reservation:</strong>
+            <p><?= htmlspecialchars($error) ?></p>
         </div>
 
     <?php endif; ?>
 
-    <div class="form-container">
+    <div class="reservation-form-card">
+
+        <div class="reservation-form-card-header">
+
+            <div class="reservation-form-icon">&#9998;</div>
+
+            <div>
+                <h2>Reservation Information</h2>
+                <p>Update the reservation details below.</p>
+            </div>
+
+        </div>
 
         <form method="POST" action="">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+            >
 
             <input
                 type="hidden"
@@ -146,144 +177,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 value="<?= (int) $reservationId ?>"
             >
 
-            <div class="form-group">
+            <div class="reservation-form-grid">
 
-                <label for="event_id">
-                    Event
-                </label>
+                <div class="reservation-form-group">
+                    <label for="event_id">Event <span>*</span></label>
 
-                <select
-                    name="event_id"
-                    id="event_id"
-                    required
-                >
+                    <select name="event_id" id="event_id" required>
 
-                    <option value="">
-                        Select Event
-                    </option>
+                        <option value="">Select Event</option>
 
-                    <?php foreach ($events as $event): ?>
+                        <?php foreach ($events as $event): ?>
+
+                            <option
+                                value="<?= (int) $event['id'] ?>"
+                                <?= $eventId === (int) $event['id']
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= htmlspecialchars($event['title']) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+                </div>
+
+                <div class="reservation-form-group">
+                    <label for="attendee_id">Attendee <span>*</span></label>
+
+                    <select name="attendee_id" id="attendee_id" required>
+
+                        <option value="">Select Attendee</option>
+
+                        <?php foreach ($attendees as $attendee): ?>
+
+                            <option
+                                value="<?= (int) $attendee['id'] ?>"
+                                <?= $attendeeId === (int) $attendee['id']
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= htmlspecialchars(
+                                    $attendee['first_name'] . ' ' .
+                                    $attendee['last_name']
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+                </div>
+
+                <div class="reservation-form-group">
+                    <label for="quantity">Ticket Quantity <span>*</span></label>
+
+                    <input
+                        type="number"
+                        name="quantity"
+                        id="quantity"
+                        min="1"
+                        value="<?= (int) $quantity ?>"
+                        required
+                    >
+                </div>
+
+                <div class="reservation-form-group">
+                    <label for="status">Reservation Status <span>*</span></label>
+
+                    <select name="status" id="status" required>
 
                         <option
-                            value="<?= (int) $event['id'] ?>"
-                            <?= $eventId === (int) $event['id']
-                                ? 'selected'
-                                : '' ?>
+                            value="CONFIRMED"
+                            <?= $status === 'CONFIRMED' ? 'selected' : '' ?>
                         >
-
-                            <?= htmlspecialchars($event['title']) ?>
-
+                            CONFIRMED
                         </option>
-
-                    <?php endforeach; ?>
-
-                </select>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="attendee_id">
-                    Attendee
-                </label>
-
-                <select
-                    name="attendee_id"
-                    id="attendee_id"
-                    required
-                >
-
-                    <option value="">
-                        Select Attendee
-                    </option>
-
-                    <?php foreach ($attendees as $attendee): ?>
 
                         <option
-                            value="<?= (int) $attendee['id'] ?>"
-                            <?= $attendeeId === (int) $attendee['id']
-                                ? 'selected'
-                                : '' ?>
+                            value="CANCELLED"
+                            <?= $status === 'CANCELLED' ? 'selected' : '' ?>
                         >
-
-                            <?= htmlspecialchars(
-                                $attendee['first_name'] .
-                                ' ' .
-                                $attendee['last_name']
-                            ) ?>
-
+                            CANCELLED
                         </option>
 
-                    <?php endforeach; ?>
-
-                </select>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="quantity">
-                    Quantity
-                </label>
-
-                <input
-                    type="number"
-                    name="quantity"
-                    id="quantity"
-                    min="1"
-                    value="<?= (int) $quantity ?>"
-                    required
-                >
+                    </select>
+                </div>
 
             </div>
 
-            <div class="form-group">
+            <p class="reservation-form-note">
+                Fields marked with <span>*</span> are required.
+            </p>
 
-                <label for="status">
-                    Status
-                </label>
+            <div class="reservation-form-actions">
 
-                <select
-                    name="status"
-                    id="status"
-                    required
-                >
+                <a href="../public/reservations.php"
+                   class="reservation-form-cancel">
+                    Cancel
+                </a>
 
-                    <option
-                        value="CONFIRMED"
-                        <?= $status === 'CONFIRMED'
-                            ? 'selected'
-                            : '' ?>
-                    >
-                        CONFIRMED
-                    </option>
-
-                    <option
-                        value="CANCELLED"
-                        <?= $status === 'CANCELLED'
-                            ? 'selected'
-                            : '' ?>
-                    >
-                        CANCELLED
-                    </option>
-
-                </select>
+                <button type="submit" class="reservation-form-submit">
+                    Update Reservation
+                </button>
 
             </div>
-
-            <button
-                type="submit"
-                class="btn btn-primary"
-            >
-                Update Reservation
-            </button>
-
-            <a
-                href="reservations.php"
-                class="btn btn-secondary"
-            >
-                Cancel
-            </a>
 
         </form>
 
@@ -294,5 +291,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

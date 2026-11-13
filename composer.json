@@ -1,0 +1,12 @@
+{
+    "name": "eventticketing/system",
+    "authors": [
+        {
+            "name": "Jude Angelo",
+            "email": "judeangelo113@gmail.com"
+        }
+    ],
+    "require": {
+        "dompdf/dompdf": "^3.1"
+    }
+}

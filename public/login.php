@@ -4,7 +4,6 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/Database.php';
 
 if (isLoggedIn()) {
-
     if (isAdmin()) {
         header('Location: dashboard.php');
     } elseif (isAttendee()) {
@@ -12,7 +11,6 @@ if (isLoggedIn()) {
     } else {
         header('Location: logout.php');
     }
-
     exit;
 }
 
@@ -53,12 +51,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['attendee_id'] = $user['attendee_id'];
 
-                if ($user['role'] === 'admin') {
-                    header('Location: dashboard.php');
-                } else {
-                    header('Location: attendee-dashboard.php');
-                }
-                exit;
+                    if ($user['role'] === 'admin') {
+                        header('Location: dashboard.php');
+                    } elseif ($user['role'] === 'attendee') {
+                        header('Location: attendee-dashboard.php');
+                    } else {
+                        header('Location: logout.php');
+                    }
+
+                    exit;
 
                 } else {
                     $error = 'Incorrect username or password.';
@@ -78,47 +79,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Event Ticketing System</title>
+    <title>Login - EventlyPH</title>
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
-<body>
+<body class="login-page">
 
-<div class="login-container">
+    <div class="login-wrapper">
 
-    <h2>Event Ticketing System</h2>
-    <h3>Login</h3>
+        <div class="login-card">
 
-    <?php if ($error !== ''): ?>
-        <p class="login-error">
-            <?= htmlspecialchars($error) ?>
-        </p>
-    <?php endif; ?>
+            <div class="login-brand">
+                <h1>EventlyPH</h1>
+                <p>Event Reservation and Ticketing System</p>
+            </div>
 
-    <form method="POST" action="login.php">
+            <div class="login-heading">
+                <h2>Welcome Back!</h2>
+                <p>Sign in to continue to your account.</p>
+            </div>
 
-        <input
-            type="hidden"
-            name="csrf_token"
-            value="<?= htmlspecialchars(generateCSRFToken()) ?>"
-        >
+            <?php if ($error !== ''): ?>
+                <div class="login-error">
+                    <?= htmlspecialchars($error) ?>
+                </div>
+            <?php endif; ?>
 
-        <label>Username</label>
-        <input type="text" name="username" required>
+            <form method="POST" action="login.php" class="login-form">
 
-        <label>Password</label>
-        <input type="password" name="password" required>
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+                >
 
-        <button type="submit">Login</button>
+                <div class="login-field">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
 
-    </form>
+                <div class="login-field">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
 
-    <p class="register-link">
-        Don't have an account?
-        <a href="register.php">Register here</a>
-    </p>
+                <button type="submit" class="login-submit">
+                    Login to Your Account
+                </button>
 
-</div>
+            </form>
+
+            <div class="login-register-link">
+                Don't have an account?
+                <a href="register.php">Create an account</a>
+            </div>
+
+            <div class="login-back-link">
+                <a href="index.php">← Back to Home</a>
+            </div>
+
+        </div>
+
+    </div>
 
 </body>
 </html>

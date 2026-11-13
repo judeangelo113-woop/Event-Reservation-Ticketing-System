@@ -11,6 +11,7 @@ if ($reservationId <= 0) {
 }
 
 try {
+
     $reservationModel = new Reservation();
 
     $reservation = $reservationModel->getReservationById($reservationId);
@@ -37,7 +38,59 @@ try {
     $tickets = $stmt->fetchAll();
 
 } catch (Exception $e) {
+
     die('Unable to load reservation.');
+
+}
+
+// Format reservation date.
+$reservationDate = !empty($reservation['reservation_date'])
+    ? strtotime($reservation['reservation_date'])
+    : false;
+
+// Status badge helper.
+function getReservationStatusClass($status)
+{
+    $status = strtoupper(trim($status));
+
+    switch ($status) {
+        case 'CONFIRMED':
+        case 'APPROVED':
+            return 'success-status-confirmed';
+
+        case 'PENDING':
+            return 'success-status-pending';
+
+        case 'CANCELLED':
+        case 'REJECTED':
+            return 'success-status-cancelled';
+
+        default:
+            return 'success-status-default';
+    }
+}
+
+function getTicketStatusClass($status)
+{
+    $status = strtoupper(trim($status));
+
+    switch ($status) {
+        case 'ISSUED':
+        case 'VALID':
+        case 'ACTIVE':
+            return 'success-status-confirmed';
+
+        case 'USED':
+        case 'CHECKED_IN':
+            return 'success-status-used';
+
+        case 'CANCELLED':
+        case 'VOID':
+            return 'success-status-cancelled';
+
+        default:
+            return 'success-status-default';
+    }
 }
 
 ?>
@@ -49,14 +102,11 @@ try {
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Reservation Successful - EventlyPH</title>
 
     <link rel="stylesheet" href="../assets/css/style.css">
-
-    <title>Reservation Successful</title>
 
 </head>
 
@@ -64,128 +114,264 @@ try {
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<div class="container">
+<div class="reservation-success-page">
 
-    <div class="form-container reservation-success">
+    <!-- Success Header -->
+    <section class="reservation-success-hero">
 
-        <div class="success-header">
-
-            <div class="success-icon">
-                ✓
-            </div>
-
-            <h1>Reservation Successful!</h1>
-
-            <p class="page-description">
-                Your reservation has been successfully created.
-            </p>
-
+        <div class="reservation-success-check">
+            ✓
         </div>
 
-        <div class="success-section">
+        <span class="reservation-success-label">
+            RESERVATION RECEIVED
+        </span>
 
-            <h2>Reservation Details</h2>
+        <h1>Reservation Successful!</h1>
 
-            <div class="details-list">
+        <p>
+            Your reservation has been successfully created.
+            You can review your reservation and ticket information below.
+        </p>
 
-                <p>
-                    <strong>Reservation ID:</strong>
-                    <?= (int) $reservation['id'] ?>
-                </p>
+        <div class="reservation-success-reference">
+            <span>RESERVATION REFERENCE</span>
+            <strong>#<?= (int) $reservation['id'] ?></strong>
+        </div>
 
-                <p>
-                    <strong>Event:</strong>
-                    <?= htmlspecialchars($reservation['event_title']) ?>
-                </p>
+    </section>
 
-                <p>
-                    <strong>Attendee:</strong>
-                    <?= htmlspecialchars($reservation['attendee_name']) ?>
-                </p>
+    <!-- Main Content -->
+    <div class="reservation-success-content">
 
-                <p>
-                    <strong>Email:</strong>
-                    <?= htmlspecialchars($reservation['attendee_email']) ?>
-                </p>
+        <!-- Reservation Summary -->
+        <section class="reservation-success-card">
 
-                <p>
-                    <strong>Quantity:</strong>
-                    <?= (int) $reservation['quantity'] ?>
-                </p>
+            <div class="reservation-success-card-header">
 
-                <p>
-                    <strong>Status:</strong>
-                    <span class="status-badge status-open">
-                        <?= htmlspecialchars($reservation['status']) ?>
+                <div>
+                    <span class="reservation-success-section-label">
+                        RESERVATION SUMMARY
                     </span>
-                </p>
 
-                <p>
-                    <strong>Reservation Date:</strong>
-                    <?= htmlspecialchars($reservation['reservation_date']) ?>
-                </p>
+                    <h2>Reservation Details</h2>
+                </div>
+
+                <span class="reservation-success-card-icon">
+                    📋
+                </span>
 
             </div>
 
-        </div>
+            <div class="reservation-success-event">
 
-        <div class="success-section">
+                <div class="reservation-success-event-icon">
+                    🎉
+                </div>
 
-            <h2>Ticket Details</h2>
+                <div>
+                    <small>EVENT</small>
+
+                    <h3>
+                        <?= htmlspecialchars($reservation['event_title']) ?>
+                    </h3>
+                </div>
+
+            </div>
+
+            <div class="reservation-success-info-grid">
+
+                <div class="reservation-success-info-item">
+                    <span>Reservation ID</span>
+                    <strong>#<?= (int) $reservation['id'] ?></strong>
+                </div>
+
+                <div class="reservation-success-info-item">
+                    <span>Attendee</span>
+                    <strong>
+                        <?= htmlspecialchars($reservation['attendee_name']) ?>
+                    </strong>
+                </div>
+
+                <div class="reservation-success-info-item">
+                    <span>Email Address</span>
+                    <strong>
+                        <?= htmlspecialchars($reservation['attendee_email']) ?>
+                    </strong>
+                </div>
+
+                <div class="reservation-success-info-item">
+                    <span>Number of Slots</span>
+                    <strong>
+                        <?= (int) $reservation['quantity'] ?>
+                        <?= (int) $reservation['quantity'] === 1 ? 'Ticket' : 'Tickets' ?>
+                    </strong>
+                </div>
+
+                <div class="reservation-success-info-item">
+                    <span>Reservation Date</span>
+                    <strong>
+                        <?= $reservationDate !== false
+                            ? date('F d, Y h:i A', $reservationDate)
+                            : htmlspecialchars($reservation['reservation_date']) ?>
+                    </strong>
+                </div>
+
+                <div class="reservation-success-info-item">
+                    <span>Reservation Status</span>
+
+                    <strong>
+                        <span class="reservation-success-status <?= getReservationStatusClass($reservation['status']) ?>">
+                            <?= htmlspecialchars($reservation['status']) ?>
+                        </span>
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Ticket Details -->
+        <section class="reservation-success-card">
+
+            <div class="reservation-success-card-header">
+
+                <div>
+                    <span class="reservation-success-section-label">
+                        YOUR ADMISSION
+                    </span>
+
+                    <h2>Ticket Details</h2>
+
+                    <p>
+                        Your generated tickets are listed below.
+                    </p>
+                </div>
+
+                <span class="reservation-success-card-icon">
+                    🎟️
+                </span>
+
+            </div>
 
             <?php if (!empty($tickets)): ?>
 
-                <?php foreach ($tickets as $index => $ticket): ?>
+                <div class="reservation-success-ticket-list">
 
-                    <div class="details-list">
+                    <?php foreach ($tickets as $index => $ticket): ?>
 
-                        <h3>Ticket <?= $index + 1 ?></h3>
+                        <div class="reservation-success-ticket">
 
-                        <p>
-                            <strong>Ticket Number:</strong>
-                            <?= htmlspecialchars($ticket['ticket_number']) ?>
-                        </p>
+                            <div class="reservation-success-ticket-top">
 
-                        <p>
-                            <strong>Ticket Status:</strong>
-                            <span class="status-badge status-open">
-                                <?= htmlspecialchars($ticket['status']) ?>
-                            </span>
-                        </p>
+                                <div class="reservation-success-ticket-number">
+                                    <span>TICKET</span>
+                                    <strong>
+                                        <?= str_pad($index + 1, 2, '0', STR_PAD_LEFT) ?>
+                                    </strong>
+                                </div>
 
-                        <p>
-                            <strong>Issued At:</strong>
-                            <?= htmlspecialchars($ticket['issued_at']) ?>
-                        </p>
+                                <span class="reservation-success-status <?= getTicketStatusClass($ticket['status']) ?>">
+                                    <?= htmlspecialchars($ticket['status']) ?>
+                                </span>
 
-                    </div>
+                            </div>
 
-                    <?php if ($index < count($tickets) - 1): ?>
-                        <hr>
-                    <?php endif; ?>
+                            <div class="reservation-success-ticket-divider"></div>
 
-                <?php endforeach; ?>
+                            <div class="reservation-success-ticket-details">
+
+                                <div>
+                                    <span>Ticket Number</span>
+
+                                    <strong>
+                                        <?= htmlspecialchars($ticket['ticket_number']) ?>
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Issued Date</span>
+
+                                    <strong>
+                                        <?php
+                                        $issuedDate = !empty($ticket['issued_at'])
+                                            ? strtotime($ticket['issued_at'])
+                                            : false;
+                                        ?>
+
+                                        <?= $issuedDate !== false
+                                            ? date('M d, Y h:i A', $issuedDate)
+                                            : 'Not available' ?>
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                            <div class="reservation-success-ticket-footer">
+                                <span>EVENTLYPH</span>
+                                <span>OFFICIAL EVENT TICKET</span>
+                            </div>
+
+                        </div>
+
+                    <?php endforeach; ?>
+
+                </div>
 
             <?php else: ?>
 
-                <p>No tickets found for this reservation.</p>
+                <div class="reservation-success-empty-tickets">
+
+                    <span>🎟️</span>
+
+                    <h3>No Tickets Found</h3>
+
+                    <p>
+                        No tickets are currently associated with this reservation.
+                    </p>
+
+                </div>
 
             <?php endif; ?>
 
+        </section>
+
+        <!-- Important Notice -->
+        <div class="reservation-success-notice">
+
+            <span>ℹ️</span>
+
+            <div>
+                <strong>Important Reminder</strong>
+
+                <p>
+                    Keep your ticket number for reference. Your reservation
+                    status is displayed above, so check it before attending
+                    the event.
+                </p>
+            </div>
+
         </div>
 
-        <div class="success-actions">
+        <!-- Action Buttons -->
+        <div class="reservation-success-actions">
 
-            <a href="browse-events.php" class="btn btn-secondary">
-                Back to Events
+            <a href="browse-events.php" class="reservation-success-back">
+                ← Browse More Events
             </a>
 
-            <a href="my-reservations.php?id=<?= (int) $reservation['id'] ?>" class="btn btn-primary">
+            <a
+                href="my-reservations.php?id=<?= (int) $reservation['id'] ?>"
+                class="reservation-success-view-reservation"
+            >
                 View Reservation
             </a>
 
-            <a href="my-tickets.php?reservation_id=<?= (int) $reservation['id'] ?>" class="btn btn-primary">
-                View Tickets
+            <a
+                href="my-tickets.php?reservation_id=<?= (int) $reservation['id'] ?>"
+                class="reservation-success-view-tickets"
+            >
+                View My Tickets →
             </a>
 
         </div>
@@ -197,5 +383,4 @@ try {
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

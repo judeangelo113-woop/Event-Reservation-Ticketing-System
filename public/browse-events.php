@@ -35,7 +35,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Browse Events - Event Ticketing System</title>
+    <title>Browse Events - EventlyPH</title>
 
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -46,79 +46,190 @@ try {
 
 <div class="browse-events-container">
 
-    <h2>Available Events</h2>
+    <!-- Page Header -->
+    <div class="browse-events-header">
 
-    <p class="browse-events-subtitle">
-        Explore upcoming events and reserve your tickets.
-    </p>
+        <div>
+            <span class="browse-events-label">DISCOVER EXPERIENCES</span>
 
+            <h1>Explore Available Events</h1>
+
+            <p>
+                Find exciting events, discover new experiences,
+                and reserve your tickets in just a few clicks.
+            </p>
+        </div>
+
+        <div class="browse-events-header-icon">
+            <span>🎟</span>
+        </div>
+
+    </div>
+
+    <!-- Event Count -->
+    <?php if ($error === '' && !empty($events)): ?>
+
+        <div class="browse-events-summary">
+            <div>
+                <strong><?= count($events) ?></strong>
+                <span>Available Events</span>
+            </div>
+        </div>
+
+    <?php endif; ?>
+
+    <!-- Error Message -->
     <?php if ($error !== ''): ?>
 
-        <p class="browse-events-error">
-            <?= htmlspecialchars($error) ?>
-        </p>
+        <div class="browse-events-message error-message">
+            <span>!</span>
+            <div>
+                <strong>Something went wrong</strong>
+                <p><?= htmlspecialchars($error) ?></p>
+            </div>
+        </div>
 
+    <!-- Empty State -->
     <?php elseif (empty($events)): ?>
 
-        <p class="no-events">
-            No available events at the moment.
-        </p>
+        <div class="browse-events-empty">
 
+            <div class="empty-events-icon">🎫</div>
+
+            <h2>No Events Available</h2>
+
+            <p>
+                There are currently no open events available for reservation.
+                Please check again later for upcoming events.
+            </p>
+
+            <a href="attendee-dashboard.php" class="browse-back-button">
+                Back to Dashboard
+            </a>
+
+        </div>
+
+    <!-- Events Grid -->
     <?php else: ?>
 
         <div class="events-grid">
 
             <?php foreach ($events as $event): ?>
 
+                <?php
+                    $availableSlots = (int) $event['available_slots'];
+                    $isAvailable = $availableSlots > 0;
+
+                    $eventDate = !empty($event['event_date'])
+                        ? strtotime($event['event_date'])
+                        : false;
+
+                    $eventTime = !empty($event['event_time'])
+                        ? strtotime($event['event_time'])
+                        : false;
+                ?>
+
                 <div class="event-card">
 
-                    <h3>
-                        <?= htmlspecialchars($event['title']) ?>
-                    </h3>
+                    <!-- Event Card Header -->
+                    <div class="event-card-header">
 
-                    <p>
-                        <?= htmlspecialchars($event['description']) ?>
-                    </p>
+                        <div class="event-card-icon">
+                            <span>🎉</span>
+                        </div>
 
-                    <div class="event-details">
-
-                        <p>
-                            <strong>Date:</strong>
-                            <?= date('F d, Y', strtotime($event['event_date'])) ?>
-                        </p>
-
-                        <p>
-                            <strong>Time:</strong>
-                            <?= date('h:i A', strtotime($event['event_time'])) ?>
-                        </p>
-
-                        <p>
-                            <strong>Venue:</strong>
-                            <?= htmlspecialchars($event['venue']) ?>
-                        </p>
-
-                        <p>
-                            <strong>Available Slots:</strong>
-                            <?= (int) $event['available_slots'] ?>
-                        </p>
+                        <span class="event-status <?= $isAvailable ? 'status-available' : 'status-sold-out' ?>">
+                            <?= $isAvailable ? 'Available' : 'Sold Out' ?>
+                        </span>
 
                     </div>
 
-                    <?php if ((int) $event['available_slots'] > 0): ?>
+                    <!-- Event Information -->
+                    <div class="event-card-content">
 
-                        <a
-                            href="reserve.php?event_id=<?= (int) $event['id'] ?>"
-                            class="reserve-button">
-                            Reserve Now
-                        </a>
+                        <h2>
+                            <?= htmlspecialchars($event['title']) ?>
+                        </h2>
 
-                    <?php else: ?>
+                        <p class="event-description">
+                            <?= htmlspecialchars($event['description']) ?>
+                        </p>
 
-                        <button class="sold-out-button" disabled>
-                            Sold Out
-                        </button>
+                        <div class="event-details">
 
-                    <?php endif; ?>
+                            <div class="event-detail-item">
+                                <span class="event-detail-icon">📅</span>
+
+                                <div>
+                                    <small>Event Date</small>
+                                    <strong>
+                                        <?= $eventDate !== false
+                                            ? date('F d, Y', $eventDate)
+                                            : 'Not specified' ?>
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="event-detail-item">
+                                <span class="event-detail-icon">🕒</span>
+
+                                <div>
+                                    <small>Event Time</small>
+                                    <strong>
+                                        <?= $eventTime !== false
+                                            ? date('h:i A', $eventTime)
+                                            : 'Not specified' ?>
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="event-detail-item">
+                                <span class="event-detail-icon">📍</span>
+
+                                <div>
+                                    <small>Venue</small>
+                                    <strong>
+                                        <?= htmlspecialchars($event['venue']) ?>
+                                    </strong>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Event Card Footer -->
+                    <div class="event-card-footer">
+
+                        <div class="event-slots">
+
+                            <span class="slots-icon">🎟</span>
+
+                            <div>
+                                <strong><?= $availableSlots ?></strong>
+                                <small>Available Slots</small>
+                            </div>
+
+                        </div>
+
+                        <?php if ($isAvailable): ?>
+
+                            <a
+                                href="reserve.php?event_id=<?= (int) $event['id'] ?>"
+                                class="reserve-button">
+                                Reserve Now
+                                <span>→</span>
+                            </a>
+
+                        <?php else: ?>
+
+                            <button class="sold-out-button" disabled>
+                                Sold Out
+                            </button>
+
+                        <?php endif; ?>
+
+                    </div>
 
                 </div>
 

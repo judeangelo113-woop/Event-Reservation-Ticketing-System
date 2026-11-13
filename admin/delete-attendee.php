@@ -1,7 +1,9 @@
+
 <?php
 
-require_once __DIR__ . '/../classes/Attendee.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/require_admin.php';
+require_once __DIR__ . '/../classes/Attendee.php';
 
 $errors = [];
 
@@ -29,6 +31,8 @@ try {
             FILTER_VALIDATE_INT
         );
 
+        // VERIFY ATTENDEE ID
+
         if (
             $postedId === false ||
             $postedId === null ||
@@ -36,6 +40,13 @@ try {
         ) {
 
             $errors[] = 'Invalid attendee ID.';
+
+        // VERIFY CSRF TOKEN
+
+        } elseif (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+
+            $errors[] =
+                'Invalid or expired request. Please refresh the page and try again.';
 
         } else {
 
@@ -48,7 +59,8 @@ try {
 
             } else {
 
-                $errors[] = 'Failed to delete the attendee.';
+                $errors[] =
+                    'Failed to delete the attendee. They may have existing records in the system.';
             }
         }
     }
@@ -65,98 +77,91 @@ try {
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Delete Attendee | EventlyPH</title>
 
-    <title>Delete Attendee</title>
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
-
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<main class="container">
+<main class="container attendee-delete-page">
 
-    <div class="form-header">
-
+    <div class="attendee-delete-header">
+        <span class="attendee-delete-label">ATTENDEE MANAGEMENT</span>
         <h1>Delete Attendee</h1>
-
-        <p>
-            Confirm that you want to delete this attendee.
-        </p>
-
+        <p>Review the attendee information before confirming deletion.</p>
     </div>
 
-    <a
-        href="../public/attendees.php"
-        class="btn btn-secondary back-button"
-    >
-        ← Back to Attendee Management
+    <a href="../public/attendees.php" class="attendee-delete-back">
+        &larr; Back to Attendees
     </a>
 
     <?php if (!empty($errors)): ?>
 
-        <div class="error">
-
-            <strong>Please fix the following errors:</strong>
+        <div class="attendee-delete-error">
+            <strong>Unable to delete attendee:</strong>
 
             <ul>
-
                 <?php foreach ($errors as $error): ?>
-
-                    <li>
-                        <?= htmlspecialchars($error) ?>
-                    </li>
-
+                    <li><?= htmlspecialchars($error) ?></li>
                 <?php endforeach; ?>
-
             </ul>
-
         </div>
 
     <?php endif; ?>
 
-    <div class="form-container">
+    <div class="attendee-delete-card">
 
-        <h3>Attendee Information</h3>
+        <div class="attendee-delete-icon">!</div>
 
-        <div class="delete-details">
+        <h2>Confirm Attendee Deletion</h2>
 
-            <p>
-                <strong>Name:</strong>
-                <?= htmlspecialchars(
-                    $attendee['first_name'] . ' ' .
-                    $attendee['last_name']
-                ) ?>
-            </p>
+        <p class="attendee-delete-description">
+            You are about to delete this attendee from the system.
+            Please review the details below.
+        </p>
 
-            <p>
-                <strong>Email:</strong>
-                <?= htmlspecialchars($attendee['email']) ?>
-            </p>
+        <div class="attendee-delete-details">
 
-            <p>
-                <strong>Phone:</strong>
-                <?= htmlspecialchars($attendee['phone'] ?? '') ?>
-            </p>
+            <div class="attendee-delete-detail">
+                <span>Attendee ID</span>
+                <strong>#<?= (int) $id ?></strong>
+            </div>
+
+            <div class="attendee-delete-detail">
+                <span>Full Name</span>
+                <strong>
+                    <?= htmlspecialchars(
+                        $attendee['first_name'] . ' ' .
+                        $attendee['last_name']
+                    ) ?>
+                </strong>
+            </div>
+
+            <div class="attendee-delete-detail">
+                <span>Email Address</span>
+                <strong><?= htmlspecialchars($attendee['email']) ?></strong>
+            </div>
+
+            <div class="attendee-delete-detail">
+                <span>Phone Number</span>
+                <strong>
+                    <?= htmlspecialchars($attendee['phone'] ?? 'Not provided') ?>
+                </strong>
+            </div>
 
         </div>
 
-        <p>
-            Are you sure you want to delete this attendee?
-            This action cannot be undone.
-        </p>
+        <div class="attendee-delete-warning">
+            <strong>Warning:</strong>
+            This action cannot be undone. Existing reservations or tickets
+            associated with this attendee may also prevent deletion.
+        </div>
 
         <form method="POST" action="">
 
@@ -166,19 +171,24 @@ try {
                 value="<?= (int) $id ?>"
             >
 
-            <button
-                type="submit"
-                class="btn btn-danger"
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
             >
-                Yes, Delete Attendee
-            </button>
 
-            <a
-                href="../public/attendees.php"
-                class="btn btn-secondary"
-            >
-                Cancel
-            </a>
+            <div class="attendee-delete-actions">
+
+                <a href="../public/attendees.php"
+                   class="attendee-delete-cancel">
+                    Cancel
+                </a>
+
+                <button type="submit" class="attendee-delete-confirm">
+                    Yes, Delete Attendee
+                </button>
+
+            </div>
 
         </form>
 
@@ -189,5 +199,4 @@ try {
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

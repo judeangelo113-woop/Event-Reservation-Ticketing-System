@@ -160,10 +160,13 @@ class Event extends BaseModel
         ]);
     }
 
+
     public function getAllEvents(
         string $search = '',
         string $status = '',
-        string $sort = 'date_asc'
+        string $sort = 'date_asc',
+        int $limit = 10,
+        int $offset = 0
     ): array {
         $sql = "SELECT
                     id,
@@ -217,13 +220,22 @@ class Event extends BaseModel
         $orderBy = $allowedSorts[$sort] ?? $allowedSorts['date_asc'];
 
         $sql .= " ORDER BY " . $orderBy;
+        $sql .= " LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
 
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $stmt->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+
+        $stmt->execute();
 
         return $stmt->fetchAll();
     }
+
 
     public function update(): bool
     {
@@ -294,5 +306,43 @@ class Event extends BaseModel
         }
 
         return $event;
+    }
+
+        public function countAllEvents(
+        string $search = '',
+        string $status = ''
+    ): int {
+        $sql = "SELECT COUNT(*) FROM events";
+
+        $conditions = [];
+        $params = [];
+
+        if ($search !== '') {
+            $conditions[] = "(title LIKE :title_search
+                            OR venue LIKE :venue_search)";
+
+            $params[':title_search'] = '%' . $search . '%';
+            $params[':venue_search'] = '%' . $search . '%';
+        }
+
+        $allowedStatuses = [
+            'OPEN',
+            'CLOSED',
+            'CANCELLED'
+        ];
+
+        if (in_array($status, $allowedStatuses, true)) {
+            $conditions[] = "status = :status";
+            $params[':status'] = $status;
+        }
+
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(" AND ", $conditions);
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 }

@@ -169,8 +169,11 @@ class Reservation extends BaseModel implements Reservable
     }
 
     //get all reservations from the database
-    public function getAllReservations(): array
-    {
+
+    public function getAllReservations(
+        int $limit = 5,
+        int $offset = 0
+    ): array {
         $sql = "SELECT
                     r.id,
                     r.event_id,
@@ -186,9 +189,13 @@ class Reservation extends BaseModel implements Reservable
                     ON r.event_id = e.id
                 INNER JOIN attendees a
                     ON r.attendee_id = a.id
-                ORDER BY r.reservation_date DESC";
+                ORDER BY r.reservation_date DESC
+                LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
+
+        $stmt->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $stmt->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
 
         $stmt->execute();
 
@@ -631,16 +638,6 @@ class Reservation extends BaseModel implements Reservable
 
         return $reservationId;
 
-            /*
-            * 8. Everything succeeded.
-            * Commit the entire transaction.
-            */
-            $this->db->commit();
-
-            $this->id = $reservationId;
-
-            return $reservationId;
-
         } catch (Exception $e) {
 
             /*
@@ -654,6 +651,99 @@ class Reservation extends BaseModel implements Reservable
             throw $e;
         }
     }
+
+
+    // Cancel a reservation and release its event slots
+    public function cancelReservationInDatabase(
+        int $reservationId,
+        int $attendeeId
+    ): bool {
+        if ($reservationId <= 0 || $attendeeId <= 0) {
+            throw new Exception("Invalid reservation information.");
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // Lock the reservation and verify its owner
+            $sql = "SELECT
+                        id,
+                        event_id,
+                        quantity,
+                        status
+                    FROM reservations
+                    WHERE id = :id
+                    AND attendee_id = :attendee_id
+                    FOR UPDATE";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':id' => $reservationId,
+                ':attendee_id' => $attendeeId
+            ]);
+
+            $reservation = $stmt->fetch();
+
+            if ($reservation === false) {
+                throw new Exception("Reservation not found.");
+            }
+
+            if (!in_array(
+                $reservation['status'],
+                ['PENDING', 'CONFIRMED'],
+                true
+            )) {
+                throw new Exception(
+                    "This reservation can no longer be cancelled."
+                );
+            }
+
+            // Release slots only if the reservation occupied them
+            if ($reservation['status'] === 'CONFIRMED') {
+                $sql = "UPDATE events
+                        SET available_slots = available_slots + :quantity
+                        WHERE id = :event_id";
+
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':quantity' => (int) $reservation['quantity'],
+                    ':event_id' => (int) $reservation['event_id']
+                ]);
+            }
+
+            // Update reservation status
+            $sql = "UPDATE reservations
+                    SET status = 'CANCELLED'
+                    WHERE id = :id";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':id' => $reservationId
+            ]);
+
+            // Cancel associated tickets
+            $sql = "UPDATE tickets
+                    SET status = 'CANCELLED'
+                    WHERE reservation_id = :reservation_id";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':reservation_id' => $reservationId
+            ]);
+
+            $this->db->commit();
+
+            return true;
+
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
 
     // Delete reservation from the database
     public function delete(): bool
@@ -724,6 +814,18 @@ class Reservation extends BaseModel implements Reservable
             throw $e;
         }
     }
+
+    // Count all reservations
+    public function countAllReservations(): int
+    {
+        $sql = "SELECT COUNT(*) FROM reservations";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
 }
 
 ?>

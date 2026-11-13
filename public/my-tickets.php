@@ -12,6 +12,8 @@ if (!isAttendee()) {
 $reservationId = (int) ($_GET['reservation_id'] ?? 0);
 $attendeeId = (int) $_SESSION['attendee_id'];
 
+$tickets = [];
+
 try {
 
     $database = new Database();
@@ -54,8 +56,12 @@ try {
     $tickets = $stmt->fetchAll();
 
 } catch (Exception $e) {
+
     die('Unable to load tickets.');
+
 }
+
+$ticketCount = count($tickets);
 
 ?>
 
@@ -65,86 +71,258 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Tickets - EventlyPH</title>
+
     <link rel="stylesheet" href="../assets/css/style.css">
-    <title>My Tickets</title>
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<div class="container">
+<div class="my-tickets-container">
 
-    <div class="form-container">
+    <!-- Page Header -->
+    <div class="my-tickets-header">
 
-        <h1>My Tickets</h1>
+        <div>
+            <span class="my-tickets-label">YOUR EVENT PASSES</span>
 
-        <p class="page-description">
-            View all your event tickets.
-        </p>
+            <h1>My Tickets</h1>
 
-        <?php if (empty($tickets)): ?>
+            <p>
+                Access your event tickets and keep your ticket
+                information ready for event day.
+            </p>
+        </div>
 
-            <p>You don't have any tickets yet.</p>
+        <div class="my-tickets-header-icon">
+            🎟
+        </div>
 
-            <a href="browse-events.php" class="btn btn-primary">
+    </div>
+
+    <!-- Ticket Summary -->
+    <?php if (!empty($tickets)): ?>
+
+        <div class="my-tickets-summary">
+
+            <div class="my-tickets-summary-icon">
+                🎫
+            </div>
+
+            <div>
+                <strong><?= $ticketCount ?></strong>
+
+                <span>
+                    <?= $ticketCount === 1 ? 'Ticket Available' : 'Tickets Available' ?>
+                </span>
+            </div>
+
+            <button
+                type="button"
+                class="print-all-tickets-button"
+                onclick="window.print()">
+                🖨 Print Tickets
+            </button>
+
+        </div>
+
+    <?php endif; ?>
+
+    <!-- Empty State -->
+    <?php if (empty($tickets)): ?>
+
+        <div class="my-tickets-empty">
+
+            <div class="my-tickets-empty-icon">
+                🎟
+            </div>
+
+            <h2>No Tickets Found</h2>
+
+            <p>
+                <?php if ($reservationId > 0): ?>
+                    We couldn't find any tickets for this reservation.
+                <?php else: ?>
+                    You don't have any tickets yet. Make a reservation
+                    for an available event to get your tickets.
+                <?php endif; ?>
+            </p>
+
+            <a href="browse-events.php" class="my-tickets-browse-button">
                 Browse Events
+                <span>→</span>
             </a>
 
-        <?php else: ?>
+        </div>
+
+    <?php else: ?>
+
+        <!-- Tickets List -->
+        <div class="my-tickets-list">
 
             <?php foreach ($tickets as $ticket): ?>
 
-                <div class="success-section">
+                <?php
 
-                    <h2><?= htmlspecialchars($ticket['event_title']) ?></h2>
+                    $status = strtoupper(trim($ticket['ticket_status'] ?? 'ISSUED'));
 
-                    <div class="details-list">
+                    $statusClass = match ($status) {
+                        'ISSUED', 'VALID', 'ACTIVE' => 'ticket-status-valid',
+                        'USED', 'CHECKED_IN' => 'ticket-status-used',
+                        'CANCELLED', 'VOID' => 'ticket-status-cancelled',
+                        default => 'ticket-status-default'
+                    };
 
-                        <p>
-                            <strong>Ticket Number:</strong>
-                            <?= htmlspecialchars($ticket['ticket_number']) ?>
-                        </p>
+                    $eventDate = !empty($ticket['event_date'])
+                        ? strtotime($ticket['event_date'])
+                        : false;
 
-                        <p>
-                            <strong>Reservation ID:</strong>
-                            <?= (int) $ticket['reservation_id'] ?>
-                        </p>
+                    $eventTime = !empty($ticket['event_time'])
+                        ? strtotime($ticket['event_time'])
+                        : false;
 
-                        <p>
-                            <strong>Event Date:</strong>
-                            <?= htmlspecialchars($ticket['event_date']) ?>
-                        </p>
+                    $issuedDate = !empty($ticket['issued_at'])
+                        ? strtotime($ticket['issued_at'])
+                        : false;
 
-                        <p>
-                            <strong>Event Time:</strong>
-                            <?= htmlspecialchars($ticket['event_time']) ?>
-                        </p>
+                ?>
 
-                        <p>
-                            <strong>Venue:</strong>
-                            <?= htmlspecialchars($ticket['venue']) ?>
-                        </p>
+                <div class="digital-ticket">
 
-                        <p>
-                            <strong>Ticket Status:</strong>
-                            <?= htmlspecialchars($ticket['ticket_status']) ?>
-                        </p>
+                    <!-- Main Ticket Section -->
+                    <div class="digital-ticket-main">
 
-                        <p>
-                            <strong>Issued At:</strong>
-                            <?= htmlspecialchars($ticket['issued_at']) ?>
-                        </p>
+                        <div class="digital-ticket-top">
+
+                            <span class="digital-ticket-brand">
+                                EVENTLYPH
+                            </span>
+
+                            <span class="digital-ticket-type">
+                                EVENT TICKET
+                            </span>
+
+                        </div>
+
+                        <div class="digital-ticket-event">
+
+                            <span class="digital-ticket-label">
+                                YOU'RE GOING TO
+                            </span>
+
+                            <h2>
+                                <?= htmlspecialchars($ticket['event_title']) ?>
+                            </h2>
+
+                        </div>
+
+                        <div class="digital-ticket-details">
+
+                            <div>
+                                <small>DATE</small>
+
+                                <strong>
+                                    <?= $eventDate !== false
+                                        ? date('M d, Y', $eventDate)
+                                        : 'Not specified' ?>
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small>TIME</small>
+
+                                <strong>
+                                    <?= $eventTime !== false
+                                        ? date('h:i A', $eventTime)
+                                        : 'Not specified' ?>
+                                </strong>
+                            </div>
+
+                            <div class="digital-ticket-venue">
+                                <small>VENUE</small>
+
+                                <strong>
+                                    <?= htmlspecialchars($ticket['venue']) ?>
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <div class="digital-ticket-number-section">
+
+                            <div>
+                                <small>TICKET NUMBER</small>
+
+                                <strong>
+                                    <?= htmlspecialchars($ticket['ticket_number']) ?>
+                                </strong>
+                            </div>
+
+                            <span class="ticket-status <?= $statusClass ?>">
+                                <?= htmlspecialchars($status) ?>
+                            </span>
+
+                        </div>
 
                     </div>
 
-                    <div class="success-actions">
+                    <!-- Ticket Stub -->
+                    <div class="digital-ticket-stub">
+
+                        <div class="ticket-stub-decoration">
+                            🎟
+                        </div>
+
+                        <span class="ticket-stub-label">
+                            RESERVATION
+                        </span>
+
+                        <strong class="ticket-stub-id">
+                            #<?= (int) $ticket['reservation_id'] ?>
+                        </strong>
+
+                        <div class="ticket-stub-divider"></div>
+
+                        <span class="ticket-stub-label">
+                            TICKET ID
+                        </span>
+
+                        <strong class="ticket-stub-id">
+                            #<?= (int) $ticket['id'] ?>
+                        </strong>
+
+                        <div class="ticket-stub-issued">
+
+                            <small>ISSUED ON</small>
+
+                            <strong>
+                                <?= $issuedDate !== false
+                                    ? date('M d, Y', $issuedDate)
+                                    : 'Not available' ?>
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Ticket Actions -->
+                    <div class="digital-ticket-actions">
 
                         <a
                             href="my-reservations.php?id=<?= (int) $ticket['reservation_id'] ?>"
-                            class="btn btn-secondary">
+                            class="ticket-reservation-button">
                             View Reservation
                         </a>
+
+                        <button
+                            type="button"
+                            class="ticket-print-button"
+                            onclick="window.print()">
+                            🖨 Print
+                        </button>
 
                     </div>
 
@@ -152,9 +330,9 @@ try {
 
             <?php endforeach; ?>
 
-        <?php endif; ?>
+        </div>
 
-    </div>
+    <?php endif; ?>
 
 </div>
 

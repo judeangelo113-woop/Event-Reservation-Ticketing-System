@@ -1,12 +1,20 @@
 const menuToggle = document.getElementById('menuToggle');
-const navLinks = document.getElementById('navLinks');
+const appSidebar = document.getElementById('appSidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-menuToggle.addEventListener('click', function () {
+if (menuToggle && appSidebar && sidebarOverlay) {
 
-    navLinks.classList.toggle('active');
+    function toggleSidebar() {
+        appSidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
 
-    const isOpen = navLinks.classList.contains('active');
+        const isOpen = appSidebar.classList.contains('active');
 
-    menuToggle.setAttribute('aria-expanded', isOpen);
+        menuToggle.setAttribute('aria-expanded', isOpen);
+    }
 
-});
+    menuToggle.addEventListener('click', toggleSidebar);
+
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+
+}

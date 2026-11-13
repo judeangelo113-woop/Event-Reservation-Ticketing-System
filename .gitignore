@@ -9,3 +9,13 @@ event_ticketing.zip
 
 # Postman local workspace settings
 .postman/
+
+# Temporary and backup files
+*.bak
+e.php
+
+# Postman local workspace settings
+.postman/
+
+# Postman local collection workspace
+postman/collections/

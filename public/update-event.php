@@ -19,7 +19,7 @@ if ($event === null) {
     die('Event not found.');
 }
 
-// Form 
+// Existing event information
 $title = $event['title'];
 $description = $event['description'];
 $eventDate = $event['event_date'];
@@ -28,9 +28,12 @@ $venue = $event['venue'];
 $capacity = $event['capacity'];
 $status = $event['status'];
 
-
 // PROCESS UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
+        die('Invalid CSRF token. Please refresh the page and try again.');
+    }
 
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -40,9 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $capacity = trim($_POST['capacity'] ?? '');
     $status = trim($_POST['status'] ?? 'OPEN');
 
+    // VALIDATION
 
-    
-    // SERVER-SIDE VALIDATION
     if ($title === '') {
         $errors[] = 'Event title is required.';
     }
@@ -63,13 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $errors[] = 'Capacity is required.';
 
-    } elseif (!filter_var($capacity, FILTER_VALIDATE_INT)) {
+    } elseif (filter_var($capacity, FILTER_VALIDATE_INT) === false) {
 
         $errors[] = 'Capacity must be a whole number.';
 
-    } elseif ((int)$capacity <= 0) {
+    } elseif ((int) $capacity <= 0) {
 
         $errors[] = 'Capacity must be greater than zero.';
+
     }
 
     $allowedStatuses = ['OPEN', 'CLOSED', 'CANCELLED'];
@@ -77,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($status, $allowedStatuses, true)) {
         $errors[] = 'Invalid event status.';
     }
-
 
     // UPDATE EVENT
     if (empty($errors)) {
@@ -90,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $eventDate,
                 $eventTime,
                 $venue,
-                (int)$capacity,
-                (int)$event['available_slots'],
+                (int) $capacity,
+                (int) $event['available_slots'],
                 $status
             );
 
@@ -105,13 +107,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
 
                 $errors[] = 'Failed to update the event.';
+
             }
 
         } catch (Exception $e) {
 
             $errors[] = 'An error occurred while updating the event.';
+
         }
+
     }
+
 }
 
 ?>
@@ -123,14 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Edit Event</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="../assets/css/style.css">
+
+    <title>Edit Event | EventlyPH</title>
 
 </head>
 
@@ -138,202 +141,232 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<main class="container">
+<main class="container event-form-page">
 
-    <div class="form-header">
+    <!-- PAGE HEADER -->
+    <section class="event-form-heading">
 
-        <h1>Edit Event</h1>
+        <div>
 
-        <p>
-            Update the event information, schedule, venue, capacity, and status.
-        </p>
+            <span class="event-form-eyebrow">EVENT MANAGEMENT</span>
 
-    </div>
+            <h1>Edit Event</h1>
 
-
-    <a href="events.php" class="btn btn-secondary back-button">
-        ← Back to Event Management
-    </a>
-
-
-    <?php if (!empty($errors)): ?>
-
-        <div class="error">
-
-            <strong>Please fix the following errors:</strong>
-
-            <ul>
-
-                <?php foreach ($errors as $error): ?>
-
-                    <li>
-                        <?= htmlspecialchars($error) ?>
-                    </li>
-
-                <?php endforeach; ?>
-
-            </ul>
+            <p>
+                Update the event information, schedule, venue, capacity, and status.
+            </p>
 
         </div>
 
-    <?php endif; ?>
+        <a href="events.php" class="event-back-button">
+            ← Back to Events
+        </a>
 
+    </section>
 
-    <div class="form-container">
+    <!-- FORM CARD -->
+    <section class="event-form-card">
 
-        <form method="POST" action="">
+        <div class="event-form-card-heading">
 
-            <div class="form-group">
+            <div class="event-form-icon">✎</div>
+
+            <div>
+                <h2>Update Event Information</h2>
+                <p>
+                    Editing Event #<?= (int) $id ?>:
+                    <?= htmlspecialchars($event['title']) ?>
+                </p>
+            </div>
+
+        </div>
+
+        <!-- VALIDATION ERRORS -->
+        <?php if (!empty($errors)): ?>
+
+            <div class="event-form-errors">
+
+                <strong>Please check the following:</strong>
+
+                <ul>
+
+                    <?php foreach ($errors as $error): ?>
+
+                        <li><?= htmlspecialchars($error) ?></li>
+
+                    <?php endforeach; ?>
+
+                </ul>
+
+            </div>
+
+        <?php endif; ?>
+
+        <form method="POST" action="" class="event-modern-form">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+            >
+
+            <!-- EVENT TITLE -->
+            <div class="event-form-group event-form-full">
 
                 <label for="title">
-                    Event Title
+                    Event Title <span>*</span>
                 </label>
 
                 <input
                     type="text"
-                    id="title"
                     name="title"
+                    id="title"
+                    placeholder="Enter event title"
                     value="<?= htmlspecialchars($title) ?>"
                     required
                 >
 
             </div>
 
-
-            <div class="form-group">
+            <!-- DESCRIPTION -->
+            <div class="event-form-group event-form-full">
 
                 <label for="description">
                     Description
                 </label>
 
                 <textarea
-                    id="description"
                     name="description"
+                    id="description"
                     rows="5"
+                    placeholder="Enter a short description of the event..."
                 ><?= htmlspecialchars($description) ?></textarea>
 
             </div>
 
-
-            <div class="form-group">
+            <!-- EVENT DATE -->
+            <div class="event-form-group">
 
                 <label for="event_date">
-                    Event Date
+                    Event Date <span>*</span>
                 </label>
 
                 <input
                     type="date"
-                    id="event_date"
                     name="event_date"
+                    id="event_date"
                     value="<?= htmlspecialchars($eventDate) ?>"
                     required
                 >
 
             </div>
 
-
-            <div class="form-group">
+            <!-- EVENT TIME -->
+            <div class="event-form-group">
 
                 <label for="event_time">
-                    Event Time
+                    Event Time <span>*</span>
                 </label>
 
                 <input
                     type="time"
-                    id="event_time"
                     name="event_time"
+                    id="event_time"
                     value="<?= htmlspecialchars($eventTime) ?>"
                     required
                 >
 
             </div>
 
-
-            <div class="form-group">
+            <!-- VENUE -->
+            <div class="event-form-group event-form-full">
 
                 <label for="venue">
-                    Venue
+                    Venue <span>*</span>
                 </label>
 
                 <input
                     type="text"
-                    id="venue"
                     name="venue"
+                    id="venue"
+                    placeholder="Enter event location or venue"
                     value="<?= htmlspecialchars($venue) ?>"
                     required
                 >
 
             </div>
 
-
-            <div class="form-group">
+            <!-- CAPACITY -->
+            <div class="event-form-group">
 
                 <label for="capacity">
-                    Capacity
+                    Event Capacity <span>*</span>
                 </label>
 
                 <input
                     type="number"
-                    id="capacity"
                     name="capacity"
+                    id="capacity"
                     min="1"
-                    value="<?= htmlspecialchars($capacity) ?>"
+                    placeholder="Enter maximum attendees"
+                    value="<?= htmlspecialchars((string) $capacity) ?>"
                     required
                 >
 
+                <small>Maximum number of attendees allowed.</small>
+
             </div>
 
-
-            <div class="form-group">
+            <!-- STATUS -->
+            <div class="event-form-group">
 
                 <label for="status">
-                    Status
+                    Event Status <span>*</span>
                 </label>
 
-                <select id="status" name="status">
+                <select id="status" name="status" required>
 
-                    <option
-                        value="OPEN"
-                        <?= $status === 'OPEN' ? 'selected' : '' ?>
-                    >
+                    <option value="OPEN"
+                        <?= $status === 'OPEN' ? 'selected' : '' ?>>
                         OPEN
                     </option>
 
-                    <option
-                        value="CLOSED"
-                        <?= $status === 'CLOSED' ? 'selected' : '' ?>
-                    >
+                    <option value="CLOSED"
+                        <?= $status === 'CLOSED' ? 'selected' : '' ?>>
                         CLOSED
                     </option>
 
-                    <option
-                        value="CANCELLED"
-                        <?= $status === 'CANCELLED' ? 'selected' : '' ?>
-                    >
+                    <option value="CANCELLED"
+                        <?= $status === 'CANCELLED' ? 'selected' : '' ?>>
                         CANCELLED
                     </option>
 
                 </select>
 
+                <small>Choose the current availability of the event.</small>
+
             </div>
 
+            <!-- FORM ACTIONS -->
+            <div class="event-form-actions event-form-full">
 
-            <button type="submit" class="btn btn-primary">
-                Update Event
-            </button>
+                <a href="events.php" class="event-cancel-button">
+                    Cancel
+                </a>
 
-            <a href="events.php" class="btn btn-secondary">
-                Cancel
-            </a>
+                <button type="submit" class="event-submit-button">
+                    Save Changes
+                </button>
+
+            </div>
 
         </form>
 
-    </div>
+    </section>
 
 </main>
 
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_login.php';
@@ -29,6 +30,7 @@ $error = '';
 $attendee = null;
 
 try {
+
     $database = new Database();
     $pdo = $database->connect();
 
@@ -50,26 +52,32 @@ try {
     }
 
 } catch (PDOException $e) {
+
     die('Unable to load attendee information.');
+
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
 
-        $error = 'Invalid request. Please try again.';
+        $error = 'Invalid request. Please refresh the page and try again.';
 
     } else {
 
         $quantity = (int) ($_POST['quantity'] ?? 0);
 
-        if ($quantity <= 0) {
+        if ((int) $event['available_slots'] <= 0) {
+
+            $error = 'Sorry, this event is already sold out.';
+
+        } elseif ($quantity <= 0) {
 
             $error = 'Please enter a valid ticket quantity.';
 
         } elseif ($quantity > (int) $event['available_slots']) {
 
-            $error = 'Not enough available slots.';
+            $error = 'Not enough available slots. Please reduce your ticket quantity.';
 
         } else {
 
@@ -103,6 +111,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$availableSlots = (int) $event['available_slots'];
+$isSoldOut = $availableSlots <= 0;
+
+$eventDate = !empty($event['event_date'])
+    ? strtotime($event['event_date'])
+    : false;
+
+$eventTime = !empty($event['event_time'])
+    ? strtotime($event['event_time'])
+    : false;
+
+$postedQuantity = (int) ($_POST['quantity'] ?? 1);
+
+if ($postedQuantity < 1) {
+    $postedQuantity = 1;
+}
+
+if (!$isSoldOut && $postedQuantity > $availableSlots) {
+    $postedQuantity = $availableSlots;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -111,140 +140,340 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Make Reservation - EventlyPH</title>
+
     <link rel="stylesheet" href="../assets/css/style.css">
-    <title>Make Reservation</title>
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <div class="container">
+<div class="reservation-page-container">
 
-        <div class="form-container reservation-form">
+    <!-- Page Header -->
+    <div class="reservation-page-header">
 
-            <div class="reservation-header">
+        <div>
+            <span class="reservation-page-label">EVENT REGISTRATION</span>
 
-                <h1>Make Reservation</h1>
+            <h1>Make a Reservation</h1>
 
-                <p class="page-description">
-                    Reserve your slots for the selected event.
-                </p>
+            <p>
+                Complete your reservation details below to secure
+                your slots for this event.
+            </p>
+        </div>
 
+        <div class="reservation-header-icon">
+            🎟
+        </div>
+
+    </div>
+
+    <!-- Main Reservation Layout -->
+    <div class="reservation-layout">
+
+        <!-- Event Summary -->
+        <div class="reservation-event-card">
+
+            <div class="reservation-event-banner">
+                <span>EVENT DETAILS</span>
+
+                <div class="reservation-event-banner-icon">
+                    🎉
+                </div>
             </div>
 
-    <div class="form-container">
+            <div class="reservation-event-content">
 
-        <div class="event-summary">
+                <h2>
+                    <?= htmlspecialchars($event['title']) ?>
+                </h2>
 
-            <h2 class="reservation-event-title">
-                <?= htmlspecialchars($event['title']) ?>
-            </h2>
-
-            <div class="event-details">
-
-                <p>
-                    <strong>Date:</strong>
-                    <?= htmlspecialchars($event['event_date']) ?>
+                <p class="reservation-event-description">
+                    <?= htmlspecialchars($event['description']) ?>
                 </p>
 
-                <p>
-                    <strong>Time:</strong>
-                    <?= htmlspecialchars($event['event_time']) ?>
-                </p>
+                <div class="reservation-event-information">
 
-                <p>
-                    <strong>Venue:</strong>
-                    <?= htmlspecialchars($event['venue']) ?>
-                </p>
+                    <div class="reservation-info-item">
+                        <span class="reservation-info-icon">📅</span>
 
-                <p>
-                    <strong>Available Slots:</strong>
-                    <?= (int) $event['available_slots'] ?>
-                </p>
+                        <div>
+                            <small>Event Date</small>
+                            <strong>
+                                <?= $eventDate !== false
+                                    ? date('F d, Y', $eventDate)
+                                    : 'Not specified' ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="reservation-info-item">
+                        <span class="reservation-info-icon">🕒</span>
+
+                        <div>
+                            <small>Event Time</small>
+                            <strong>
+                                <?= $eventTime !== false
+                                    ? date('h:i A', $eventTime)
+                                    : 'Not specified' ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="reservation-info-item">
+                        <span class="reservation-info-icon">📍</span>
+
+                        <div>
+                            <small>Venue</small>
+                            <strong>
+                                <?= htmlspecialchars($event['venue']) ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="reservation-availability">
+
+                    <div>
+                        <span class="availability-indicator <?= $isSoldOut ? 'unavailable' : '' ?>"></span>
+
+                        <span>
+                            <?= $isSoldOut ? 'Sold Out' : 'Available Slots' ?>
+                        </span>
+                    </div>
+
+                    <strong><?= $availableSlots ?></strong>
+
+                </div>
 
             </div>
 
         </div>
 
-        <?php if ($error !== ''): ?>
+        <!-- Reservation Form -->
+        <div class="reservation-form-card">
 
-            <div class="error">
-                <?= htmlspecialchars($error) ?>
-            </div>
+            <div class="reservation-form-heading">
 
-        <?php endif; ?>
+                <span class="reservation-form-step">YOUR RESERVATION</span>
 
-        <form method="POST" action="">
+                <h2>Reservation Information</h2>
 
-        <input type="hidden" name="csrf_token"
-            value="<?= htmlspecialchars(generateCSRFToken()) ?>">
-
-            <div class="form-group">
-
-                <label for="first_name">
-                    First Name
-                </label>
-
+                <p>
+                    Please review your account information and select
+                    the number of slots you want to reserve.
+                </p>
 
             </div>
 
-            <div class="form-group">
+            <?php if ($error !== ''): ?>
 
-                <label for="last_name">
-                    Last Name
-                </label>
+                <div class="reservation-error">
+                    <span>!</span>
+                    <p><?= htmlspecialchars($error) ?></p>
+                </div>
 
+            <?php endif; ?>
 
-            </div>
+            <!-- Attendee Information -->
+            <div class="reservation-attendee-section">
 
-            <div class="form-group">
+                <h3>Attendee Details</h3>
 
-                <label for="email">
-                    Email
-                </label>
+                <div class="reservation-attendee-grid">
 
-            </div>
+                    <div class="reservation-input-group">
+                        <label>First Name</label>
+                        <div class="reservation-readonly-field">
+                            <?= htmlspecialchars($attendee['first_name']) ?>
+                        </div>
+                    </div>
 
-            <div class="form-group">
+                    <div class="reservation-input-group">
+                        <label>Last Name</label>
+                        <div class="reservation-readonly-field">
+                            <?= htmlspecialchars($attendee['last_name']) ?>
+                        </div>
+                    </div>
 
-                <label for="phone">
-                    Phone
-                </label>
+                    <div class="reservation-input-group">
+                        <label>Email Address</label>
+                        <div class="reservation-readonly-field">
+                            <?= htmlspecialchars($attendee['email']) ?>
+                        </div>
+                    </div>
 
-            </div>
+                    <div class="reservation-input-group">
+                        <label>Phone Number</label>
+                        <div class="reservation-readonly-field">
+                            <?= htmlspecialchars($attendee['phone'] ?? 'Not provided') ?>
+                        </div>
+                    </div>
 
-            <div class="form-group">
+                </div>
 
-                <label for="quantity">
-                    Number of Slots
-                </label>
-
-                <input
-                    type="number"
-                    id="quantity"
-                    name="quantity"
-                    min="1"
-                    max="<?= (int) $event['available_slots'] ?>"
-                    value="<?= htmlspecialchars($_POST['quantity'] ?? '1') ?>"
-                    required
-                >
-
-            </div>
-
-            <div class="form-actions">
-
-                <a href="events.php" class="btn btn-secondary">
-                    Back to Events
+                <a href="edit-profile.php" class="reservation-edit-profile">
+                    Edit Profile Information →
                 </a>
 
-                <button type="submit" class="btn btn-primary">
-                    Reserve Now
-                </button>
-
             </div>
 
-        </form>
+            <div class="reservation-divider"></div>
+
+            <!-- Ticket Quantity and Confirmation -->
+            <form method="POST" action="" id="reservationForm">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+                >
+
+                <div class="reservation-quantity-section">
+
+                    <label for="quantity">
+                        Number of Slots
+                    </label>
+
+                    <p>
+                        Choose how many slots you want to reserve.
+                    </p>
+
+                    <input
+                        type="number"
+                        id="quantity"
+                        name="quantity"
+                        min="1"
+                        max="<?= $availableSlots ?>"
+                        value="<?= $postedQuantity ?>"
+                        <?= $isSoldOut ? 'disabled' : 'required' ?>
+                    >
+
+                    <small>
+                        Maximum available slots: <?= $availableSlots ?>
+                    </small>
+
+                </div>
+
+                <div class="reservation-form-actions">
+
+                    <a href="browse-events.php" class="reservation-back-button">
+                        ← Back to Events
+                    </a>
+
+                    <button
+                        type="submit"
+                        class="reservation-submit-button"
+                        id="confirmReservationButton"
+                        <?= $isSoldOut ? 'disabled' : '' ?>
+                    >
+                        <?= $isSoldOut ? 'Event Sold Out' : 'Confirm Reservation →' ?>
+                    </button>
+
+                </div>
+
+                <!-- Confirmation Modal -->
+                <div
+                    class="reservation-confirm-overlay"
+                    id="reservationConfirmModal"
+                    aria-hidden="true"
+                >
+
+                    <div
+                        class="reservation-confirm-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="reservationConfirmTitle"
+                    >
+
+                        <div class="reservation-confirm-icon">
+                            🎟
+                        </div>
+
+                        <h2 id="reservationConfirmTitle">
+                            Confirm Your Reservation
+                        </h2>
+
+                        <p class="reservation-confirm-description">
+                            Please review your reservation details before proceeding.
+                        </p>
+
+                        <div class="reservation-confirm-details">
+
+                            <div>
+                                <span>Event</span>
+                                <strong>
+                                    <?= htmlspecialchars($event['title']) ?>
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Attendee</span>
+                                <strong>
+                                    <?= htmlspecialchars($attendee['first_name'] . ' ' . $attendee['last_name']) ?>
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Number of Slots</span>
+                                <strong id="modalQuantity">
+                                    <?= $postedQuantity ?>
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Reservation Status</span>
+                                <strong class="reservation-pending-label">
+                                    PENDING
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <p class="reservation-confirm-notice">
+                            Are you sure you want to proceed with this reservation?
+                        </p>
+
+                        <div class="reservation-confirm-actions">
+
+                            <button
+                                type="button"
+                                class="reservation-cancel-confirm"
+                                id="cancelReservationButton"
+                            >
+                                Go Back
+                            </button>
+
+                            <button
+                                type="button"
+                                class="reservation-proceed-confirm"
+                                id="proceedReservationButton"
+                            >
+                                Yes, Proceed
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+            <div class="reservation-note">
+                <span>ℹ</span>
+                <p>
+                    Please double-check your reservation quantity before
+                    submitting. Your reservation will be processed as pending.
+                </p>
+            </div>
+
+        </div>
 
     </div>
 
@@ -252,6 +481,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script src="../assets/js/navigation.js"></script>
 
-</body>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
+    const form = document.getElementById('reservationForm');
+    const quantityInput = document.getElementById('quantity');
+
+    const modal = document.getElementById('reservationConfirmModal');
+    const modalQuantity = document.getElementById('modalQuantity');
+
+    const cancelButton = document.getElementById('cancelReservationButton');
+    const proceedButton = document.getElementById('proceedReservationButton');
+
+    let reservationConfirmed = false;
+
+    function openConfirmation() {
+
+        modalQuantity.textContent = quantityInput.value;
+
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+
+        proceedButton.focus();
+    }
+
+    function closeConfirmation() {
+
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+
+        document.getElementById('confirmReservationButton').focus();
+    }
+
+    // Intercept form submission and show confirmation first.
+    form.addEventListener('submit', function (event) {
+
+        if (!reservationConfirmed) {
+
+            event.preventDefault();
+
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            openConfirmation();
+        }
+
+    });
+
+    // Update the quantity displayed in the confirmation dialog.
+    quantityInput.addEventListener('input', function () {
+        modalQuantity.textContent = quantityInput.value;
+    });
+
+    // Cancel the reservation confirmation.
+    cancelButton.addEventListener('click', function () {
+        closeConfirmation();
+    });
+
+    // Proceed with the actual reservation submission.
+    proceedButton.addEventListener('click', function () {
+
+        reservationConfirmed = true;
+
+        form.requestSubmit();
+
+    });
+
+    // Close the modal when clicking outside its content.
+    modal.addEventListener('click', function (event) {
+
+        if (event.target === modal) {
+            closeConfirmation();
+        }
+
+    });
+
+    // Allow the Escape key to close the dialog.
+    document.addEventListener('keydown', function (event) {
+
+        if (event.key === 'Escape' && modal.classList.contains('active')) {
+            closeConfirmation();
+        }
+
+    });
+
+});
+</script>
+
+</body>
 </html>

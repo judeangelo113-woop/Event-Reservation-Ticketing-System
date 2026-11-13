@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_admin.php';
@@ -5,7 +6,7 @@ require_once __DIR__ . '/../classes/Ticket.php';
 
 $ticketModel = new Ticket();
 
-$ticketId = (int) ($_GET['id'] ?? 0);
+$ticketId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 
 if ($ticketId <= 0) {
     die('Invalid ticket ID.');
@@ -24,46 +25,55 @@ $status = $ticket['status'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $ticketNumber = trim($_POST['ticket_number'] ?? '');
-    $status = trim($_POST['status'] ?? '');
+    $postedId = (int) ($_POST['id'] ?? 0);
 
-    if ($ticketNumber === '') {
+    if ($postedId !== $ticketId) {
 
-        $error = 'Ticket number is required.';
+        $error = 'Invalid ticket ID.';
 
-    } elseif (!in_array(
-        $status,
-        ['VALID', 'CANCELLED'],
-        true
-    )) {
+    } elseif (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
 
-        $error = 'Invalid ticket status.';
+        $error = 'Invalid or expired request. Please refresh the page and try again.';
 
     } else {
 
-        try {
+        $ticketNumber = trim($_POST['ticket_number'] ?? '');
+        $status = trim($_POST['status'] ?? '');
 
-            $ticketModel->setId($ticketId);
-            $ticketModel->setTicketNumber($ticketNumber);
-            $ticketModel->setStatus($status);
+        if ($ticketNumber === '') {
 
-            if ($ticketModel->update()) {
+            $error = 'Ticket number is required.';
 
-                header(
-                    'Location: tickets.php?message=' .
-                    urlencode('Ticket updated successfully')
-                );
+        } elseif (!in_array($status, ['VALID', 'CANCELLED'], true)) {
 
-                exit;
+            $error = 'Invalid ticket status.';
 
-            } else {
+        } else {
 
-                $error = 'Unable to update ticket.';
+            try {
+
+                $ticketModel->setId($ticketId);
+                $ticketModel->setTicketNumber($ticketNumber);
+                $ticketModel->setStatus($status);
+
+                if ($ticketModel->update()) {
+
+                    header(
+                        'Location: ../public/tickets.php?message=' .
+                        urlencode('Ticket updated successfully')
+                    );
+
+                    exit;
+
+                } else {
+
+                    $error = 'Unable to update ticket. Please try again.';
+                }
+
+            } catch (Exception $e) {
+
+                $error = $e->getMessage();
             }
-
-        } catch (Exception $e) {
-
-            $error = $e->getMessage();
         }
     }
 }
@@ -74,85 +84,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Update Ticket | EventlyPH</title>
 
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
-
-    <title>Update Ticket</title>
-
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<div class="container">
+<main class="container ticket-form-page">
 
-    <div class="form-header">
+    <div class="ticket-form-header">
+
+        <span class="ticket-form-label">
+            TICKET MANAGEMENT
+        </span>
 
         <h1>Update Ticket</h1>
 
         <p>
-            Update the ticket number or ticket status.
+            Modify the ticket number and status information.
         </p>
 
     </div>
 
-    <a
-        href="tickets.php"
-        class="btn btn-secondary back-button"
-    >
-        ← Back to Ticket Management
+    <a href="../public/tickets.php" class="ticket-form-back">
+        &larr; Back to Ticket Management
     </a>
 
     <?php if ($error !== ''): ?>
 
-        <div class="error">
-
-            <?= htmlspecialchars($error) ?>
-
+        <div class="ticket-form-error">
+            <strong>Unable to update ticket:</strong>
+            <p><?= htmlspecialchars($error) ?></p>
         </div>
 
     <?php endif; ?>
 
-    <div class="form-container">
+    <div class="ticket-form-card">
 
-        <div class="delete-details">
+        <div class="ticket-form-card-header">
+            <div>
+                <h2>Edit Ticket Information</h2>
+                <p>Ticket ID: #<?= (int) $ticketId ?></p>
+            </div>
+        </div>
 
-            <p>
-                <strong>Event:</strong>
-                <?= htmlspecialchars($ticket['event_title']) ?>
-            </p>
+        <div class="ticket-form-information">
 
-            <p>
-                <strong>Attendee:</strong>
-                <?= htmlspecialchars($ticket['attendee_name']) ?>
-            </p>
+            <h3>Ticket Details</h3>
 
-            <p>
-                <strong>Email:</strong>
-                <?= htmlspecialchars($ticket['attendee_email']) ?>
-            </p>
+            <div class="ticket-form-info-grid">
 
-            <p>
-                <strong>Issued At:</strong>
-                <?= htmlspecialchars($ticket['issued_at']) ?>
-            </p>
+                <div class="ticket-form-info-item">
+                    <span>Event</span>
+                    <strong>
+                        <?= htmlspecialchars($ticket['event_title']) ?>
+                    </strong>
+                </div>
+
+                <div class="ticket-form-info-item">
+                    <span>Attendee</span>
+                    <strong>
+                        <?= htmlspecialchars($ticket['attendee_name']) ?>
+                    </strong>
+                </div>
+
+                <div class="ticket-form-info-item">
+                    <span>Email Address</span>
+                    <strong>
+                        <?= htmlspecialchars($ticket['attendee_email']) ?>
+                    </strong>
+                </div>
+
+                <div class="ticket-form-info-item">
+                    <span>Issued At</span>
+                    <strong>
+                        <?= htmlspecialchars($ticket['issued_at']) ?>
+                    </strong>
+                </div>
+
+            </div>
 
         </div>
 
-        <form method="POST">
+        <form method="POST" action="">
 
-            <div class="form-group">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+            >
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int) $ticketId ?>"
+            >
+
+            <div class="ticket-form-group">
 
                 <label for="ticket_number">
                     Ticket Number
@@ -163,22 +197,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     id="ticket_number"
                     name="ticket_number"
                     value="<?= htmlspecialchars($ticketNumber) ?>"
+                    placeholder="Enter ticket number"
                     required
                 >
+
+                <small>
+                    Enter the ticket number assigned to this ticket.
+                </small>
 
             </div>
 
-            <div class="form-group">
+            <div class="ticket-form-group">
 
                 <label for="status">
-                    Status
+                    Ticket Status
                 </label>
 
-                <select
-                    id="status"
-                    name="status"
-                    required
-                >
+                <select id="status" name="status" required>
 
                     <option
                         value="VALID"
@@ -196,30 +231,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </select>
 
+                <small>
+                    Select whether the ticket is valid or cancelled.
+                </small>
+
             </div>
 
-            <button
-                type="submit"
-                class="btn btn-primary"
-            >
-                Update Ticket
-            </button>
+            <div class="ticket-form-actions">
 
-            <a
-                href="tickets.php"
-                class="btn btn-secondary"
-            >
-                Cancel
-            </a>
+                <a href="../public/tickets.php" class="ticket-form-cancel">
+                    Cancel
+                </a>
+
+                <button type="submit" class="ticket-form-submit">
+                    Update Ticket
+                </button>
+
+            </div>
 
         </form>
 
     </div>
 
-</div>
+</main>
 
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

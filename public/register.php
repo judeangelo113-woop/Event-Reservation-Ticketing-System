@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/auth.php';
@@ -30,36 +31,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $confirmPassword === ''
         ) {
             $error = 'Please fill in all required fields.';
+
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Please enter a valid email address.';
+
         } elseif (strlen($username) < 3 || strlen($username) > 50) {
             $error = 'Username must be between 3 and 50 characters.';
+
         } elseif (strlen($password) < 8) {
             $error = 'Password must be at least 8 characters.';
+
         } elseif ($password !== $confirmPassword) {
             $error = 'Passwords do not match.';
+
         } else {
 
             try {
+
                 $database = new Database();
                 $pdo = $database->connect();
 
                 // Check if email already exists
                 $checkEmail = $pdo->prepare(
-                    "SELECT id FROM attendees WHERE email = :email LIMIT 1"
+                    "SELECT id FROM attendees
+                    WHERE email = :email
+                    LIMIT 1"
                 );
+
                 $checkEmail->execute(['email' => $email]);
 
                 // Check if username already exists
                 $checkUsername = $pdo->prepare(
-                    "SELECT id FROM users WHERE username = :username LIMIT 1"
+                    "SELECT id FROM users
+                    WHERE username = :username
+                    LIMIT 1"
                 );
+
                 $checkUsername->execute(['username' => $username]);
 
                 if ($checkEmail->fetch()) {
+
                     $error = 'This email address is already registered.';
+
                 } elseif ($checkUsername->fetch()) {
+
                     $error = 'This username is already taken.';
+
                 } else {
 
                     // Securely hash the password
@@ -105,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->commit();
 
                     $success = 'Registration successful! You can now log in.';
-
                 }
 
             } catch (PDOException $e) {
@@ -123,39 +139,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-        <html lang="en">
+<html lang="en">
 
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Attendee Registration</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-            <link rel="stylesheet" href="../assets/css/style.css">
-        </head>
+    <title>Register | EventlyPH</title>
 
-        <body>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
 
-        <div class="register-container">
+<body class="register-page">
 
-            <h2>Attendee Registration</h2>
+    <div class="register-wrapper">
 
+        <div class="register-card">
+
+            <!-- Brand -->
+            <a href="index.php" class="register-brand">
+                Evently<span>PH</span>
+            </a>
+
+            <!-- Heading -->
+            <div class="register-heading">
+                <h1>Create Your Account</h1>
+                <p>Join EventlyPH and start exploring events.</p>
+            </div>
+
+            <!-- Error Message -->
             <?php if ($error !== ''): ?>
                 <p class="error">
                     <?= htmlspecialchars($error) ?>
                 </p>
             <?php endif; ?>
 
+            <!-- Registration Success -->
             <?php if ($success !== ''): ?>
+
                 <p class="success">
                     <?= htmlspecialchars($success) ?>
                 </p>
 
-                <div class="login-link">
-                    <a href="login.php">Proceed to Login</a>
+                <div class="register-success-link">
+                    <a href="login.php" class="register-submit">
+                        Proceed to Login
+                    </a>
                 </div>
 
             <?php else: ?>
 
+                <!-- Registration Form -->
                 <form method="POST" action="register.php">
 
                     <input
@@ -164,48 +198,127 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         value="<?= htmlspecialchars(generateCSRFToken()) ?>"
                     >
 
-                    <label>First Name *</label>
-                    <input type="text" name="first_name" maxlength="100"
-                        value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
-                        required>
+                    <div class="register-form-grid">
 
-                    <label>Last Name *</label>
-                    <input type="text" name="last_name" maxlength="100"
-                        value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
-                        required>
+                        <div class="register-field">
+                            <label for="first_name">First Name *</label>
 
-                    <label>Email *</label>
-                    <input type="email" name="email" maxlength="150"
-                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                        required>
+                            <input
+                                type="text"
+                                id="first_name"
+                                name="first_name"
+                                maxlength="100"
+                                placeholder="Enter first name"
+                                value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
+                                required
+                            >
+                        </div>
 
-                    <label>Phone Number</label>
-                    <input type="text" name="phone" maxlength="30"
-                        value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
+                        <div class="register-field">
+                            <label for="last_name">Last Name *</label>
 
-                    <label>Username *</label>
-                    <input type="text" name="username" minlength="3" maxlength="50"
-                        value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
-                        required>
+                            <input
+                                type="text"
+                                id="last_name"
+                                name="last_name"
+                                maxlength="100"
+                                placeholder="Enter last name"
+                                value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
+                                required
+                            >
+                        </div>
 
-                    <label>Password *</label>
-                    <input type="password" name="password" minlength="8" required>
+                        <div class="register-field register-full">
+                            <label for="email">Email Address *</label>
 
-                    <label>Confirm Password *</label>
-                    <input type="password" name="confirm_password" minlength="8" required>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                maxlength="150"
+                                placeholder="example@email.com"
+                                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                                required
+                            >
+                        </div>
 
-                    <button type="submit">Register</button>
+                        <div class="register-field register-full">
+                            <label for="phone">Phone Number</label>
+
+                            <input
+                                type="text"
+                                id="phone"
+                                name="phone"
+                                maxlength="30"
+                                placeholder="Enter phone number"
+                                value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
+                            >
+                        </div>
+
+                        <div class="register-field register-full">
+                            <label for="username">Username *</label>
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                minlength="3"
+                                maxlength="50"
+                                placeholder="Choose a username"
+                                value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                                required
+                            >
+                        </div>
+
+                        <div class="register-field">
+                            <label for="password">Password *</label>
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                minlength="8"
+                                placeholder="Minimum 8 characters"
+                                required
+                            >
+                        </div>
+
+                        <div class="register-field">
+                            <label for="confirm_password">Confirm Password *</label>
+
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                minlength="8"
+                                placeholder="Re-enter password"
+                                required
+                            >
+                        </div>
+
+                    </div>
+
+                    <button type="submit" class="register-submit">
+                        Create Account
+                    </button>
 
                 </form>
 
-                <div class="login-link">
+                <div class="register-login-link">
                     Already have an account?
                     <a href="login.php">Login here</a>
                 </div>
 
             <?php endif; ?>
 
+            <!-- Back to Home -->
+            <div class="register-back-link">
+                <a href="index.php">← Back to Home</a>
+            </div>
+
         </div>
 
-    </body>
+    </div>
+
+</body>
 </html>

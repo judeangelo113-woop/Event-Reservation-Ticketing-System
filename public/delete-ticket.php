@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_admin.php';
@@ -5,51 +6,7 @@ require_once __DIR__ . '/../classes/Ticket.php';
 
 $ticketModel = new Ticket();
 
-$ticketId = (int) ($_GET['id'] ?? 0);
-
-if ($ticketId <= 0) {
-    die("Invalid ticket ID.");
-}
-
-$ticket = $ticketModel->getTicketById($ticketId);
-
-if ($ticket === null) {
-    die("Ticket not found.");
-}
-
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    try {
-
-        $ticketModel->setId($ticketId);
-
-        if ($ticketModel->delete()) {
-
-            header("Location: tickets.php?message=deleted");
-            exit;
-
-        } else {
-
-            $error = "Unable to delete ticket.";
-        }
-
-    } catch (Exception $e) {
-
-        $error = $e->getMessage();
-    }
-}
-
-?>
-
-<?php
-
-require_once __DIR__ . '/../classes/Ticket.php';
-
-$ticketModel = new Ticket();
-
-$ticketId = (int) ($_GET['id'] ?? 0);
+$ticketId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 
 if ($ticketId <= 0) {
     die('Invalid ticket ID.');
@@ -65,27 +22,40 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    try {
+    $postedId = (int) ($_POST['id'] ?? 0);
 
-        $ticketModel->setId($ticketId);
+    if ($postedId !== $ticketId) {
 
-        if ($ticketModel->delete()) {
+        $error = 'Invalid ticket ID.';
 
-            header(
-                'Location: tickets.php?message=' .
-                urlencode('Ticket deleted successfully')
-            );
+    } elseif (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
 
-            exit;
+        $error = 'Invalid or expired request. Please refresh the page and try again.';
 
-        } else {
+    } else {
 
-            $error = 'Unable to delete ticket.';
+        try {
+
+            $ticketModel->setId($ticketId);
+
+            if ($ticketModel->delete()) {
+
+                header(
+                    'Location: ../public/tickets.php?message=' .
+                    urlencode('Ticket deleted successfully')
+                );
+
+                exit;
+
+            } else {
+
+                $error = 'Unable to delete ticket. Please try again.';
+            }
+
+        } catch (Exception $e) {
+
+            $error = $e->getMessage();
         }
-
-    } catch (Exception $e) {
-
-        $error = $e->getMessage();
     }
 }
 
@@ -97,18 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Delete Ticket | EventlyPH</title>
 
-    <title>Delete Ticket</title>
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
+    <link rel="stylesheet" href="../assets/css/style.css">
 
 </head>
 
@@ -116,92 +79,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<main class="container">
+<main class="container ticket-delete-page">
 
-    <div class="form-header">
+    <div class="ticket-delete-header">
+
+        <span class="ticket-delete-label">
+            TICKET MANAGEMENT
+        </span>
 
         <h1>Delete Ticket</h1>
 
         <p>
-            Review the ticket details before deleting it.
+            Review the ticket information before confirming deletion.
         </p>
 
     </div>
 
-    <a
-        href="tickets.php"
-        class="btn btn-secondary back-button"
-    >
-        ← Back to Ticket Management
+    <a href="../public/tickets.php" class="ticket-delete-back">
+        &larr; Back to Ticket Management
     </a>
 
     <?php if ($error !== ''): ?>
 
-        <div class="error">
+        <div class="ticket-delete-error">
 
-            <?= htmlspecialchars($error) ?>
+            <strong>Unable to delete ticket:</strong>
+
+            <p><?= htmlspecialchars($error) ?></p>
 
         </div>
 
     <?php endif; ?>
 
-    <div class="form-container">
+    <div class="ticket-delete-card">
 
-        <h2>Confirm Deletion</h2>
+        <div class="ticket-delete-icon">!</div>
 
-        <p>
+        <h2>Confirm Ticket Deletion</h2>
+
+        <p class="ticket-delete-description">
             Are you sure you want to delete this ticket?
+            Review the details below before proceeding.
         </p>
 
-        <div class="delete-details">
+        <div class="ticket-delete-details">
 
-            <p>
-                <strong>Ticket Number:</strong>
-                <?= htmlspecialchars($ticket['ticket_number']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Ticket ID</span>
+                <strong>#<?= (int) $ticketId ?></strong>
+            </div>
 
-            <p>
-                <strong>Event:</strong>
-                <?= htmlspecialchars($ticket['event_title']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Ticket Number</span>
+                <strong>
+                    <?= htmlspecialchars($ticket['ticket_number']) ?>
+                </strong>
+            </div>
 
-            <p>
-                <strong>Attendee:</strong>
-                <?= htmlspecialchars($ticket['attendee_name']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Event</span>
+                <strong>
+                    <?= htmlspecialchars($ticket['event_title']) ?>
+                </strong>
+            </div>
 
-            <p>
-                <strong>Email:</strong>
-                <?= htmlspecialchars($ticket['attendee_email']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Attendee</span>
+                <strong>
+                    <?= htmlspecialchars($ticket['attendee_name']) ?>
+                </strong>
+            </div>
 
-            <p>
-                <strong>Status:</strong>
-                <?= htmlspecialchars($ticket['status']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Email Address</span>
+                <strong>
+                    <?= htmlspecialchars($ticket['attendee_email']) ?>
+                </strong>
+            </div>
 
-            <p>
-                <strong>Issued At:</strong>
-                <?= htmlspecialchars($ticket['issued_at']) ?>
-            </p>
+            <div class="ticket-delete-detail">
+                <span>Ticket Status</span>
+                <strong>
+                    <span class="ticket-delete-status <?=
+                        $ticket['status'] === 'VALID'
+                            ? 'is-valid'
+                            : 'is-cancelled'
+                    ?>">
+                        <?= htmlspecialchars($ticket['status']) ?>
+                    </span>
+                </strong>
+            </div>
+
+            <div class="ticket-delete-detail">
+                <span>Issued At</span>
+                <strong>
+                    <?= htmlspecialchars($ticket['issued_at']) ?>
+                </strong>
+            </div>
 
         </div>
 
-        <form method="POST">
+        <div class="ticket-delete-warning">
+            <strong>Warning:</strong>
+            Deleting this ticket removes its ticket record.
+            The associated reservation is not intended to be deleted
+            by this action.
+        </div>
 
-            <button
-                type="submit"
-                class="btn btn-danger"
-            >
-                Yes, Delete Ticket
-            </button>
+        <form method="POST" action="">
 
-            <a
-                href="tickets.php"
-                class="btn btn-secondary"
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
             >
-                Cancel
-            </a>
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int) $ticketId ?>"
+            >
+
+            <div class="ticket-delete-actions">
+
+                <a href="../public/tickets.php"
+                class="ticket-delete-cancel">
+                    Cancel
+                </a>
+
+                <button type="submit" class="ticket-delete-confirm">
+                    Yes, Delete Ticket
+                </button>
+
+            </div>
 
         </form>
 
@@ -212,5 +222,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

@@ -1,90 +1,180 @@
+
 @extends('layouts.app')
 
 @section('title', 'Event Management')
 
 @section('content')
 
-    <h1>Event Management</h1>
+<div class="event-management">
 
-    <p>Manage all events in the Event Ticketing System.</p>
+    <!-- Page Header -->
+    <div class="event-management-header">
 
-    <a href="{{ route('events.create') }}" class="button">
-        + Add New Event
-    </a>
+        <div>
+            <span class="event-management-label">
+                EVENTLYPH ADMINISTRATION
+            </span>
 
-    <a href="{{ route('announcements.index') }}" class="button">
-        Manage Announcements
-    </a>
+            <h1>Event Management</h1>
 
+            <p>
+                Create, view, update, and manage events in the system.
+            </p>
+        </div>
+
+        <div class="event-management-actions">
+
+            <a href="{{ route('events.create') }}"
+               class="action-button primary-button">
+                + Add New Event
+            </a>
+
+            <a href="{{ route('announcements.index') }}"
+               class="action-button secondary-button">
+                Manage Announcements
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- Flash Messages -->
     @if(session('success'))
-        <div class="message">
+        <div class="event-management-alert event-management-success">
             {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="error">
+        <div class="event-management-alert event-management-error">
             {{ session('error') }}
         </div>
     @endif
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Venue</th>
-                <th>Capacity</th>
-                <th>Available Slots</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
+    <!-- Event Summary -->
+    <div class="event-management-summary">
 
-        <tbody>
-            @forelse($events as $event)
-                <tr>
-                    <td>{{ $event->id }}</td>
-                    <td>{{ $event->title }}</td>
-                    <td>{{ $event->event_date }}</td>
-                    <td>{{ $event->event_time }}</td>
-                    <td>{{ $event->venue }}</td>
-                    <td>{{ $event->capacity }}</td>
-                    <td>{{ $event->available_slots }}</td>
+        <div class="event-management-summary-icon">
+            E
+        </div>
 
-                    <td>
-                        <a href="{{ route('events.show', $event->id) }}">
-                            View
-                        </a>
+        <div>
+            <p>Events Displayed</p>
+            <h2>{{ $events->count() }}</h2>
+        </div>
 
-                        |
+    </div>
 
-                        <a href="{{ route('events.edit', $event->id) }}">
-                            Edit
-                        </a>
+    <!-- Events Table -->
+    <div class="event-management-card">
 
-                        |
+        <div class="event-management-card-heading">
+            <div>
+                <h2>All Events</h2>
+                <p>Event details and available actions.</p>
+            </div>
+        </div>
 
-                        <form action="{{ route('events.destroy', $event->id) }}"
-                            method="POST"
-                            style="display:inline;">
-                            @csrf
-                            @method('DELETE')
+        <div class="event-management-table-wrapper">
 
-                            <button type="submit"
-                                    onclick="return confirm('Are you sure you want to delete this event?')">
-                                Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="8">No events available.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+            <table class="event-management-table">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Event Title</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Venue</th>
+                        <th>Capacity</th>
+                        <th>Available Slots</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @forelse($events as $event)
+
+                        <tr>
+                            <td class="event-id">
+                                #{{ $event->id }}
+                            </td>
+
+                            <td class="event-title">
+                                {{ $event->title }}
+                            </td>
+
+                            <td>
+                                {{ $event->event_date }}
+                            </td>
+
+                            <td>
+                                {{ $event->event_time }}
+                            </td>
+
+                            <td>
+                                {{ $event->venue }}
+                            </td>
+
+                            <td class="event-capacity">
+                                {{ number_format($event->capacity) }}
+                            </td>
+
+                            <td class="event-capacity">
+                                {{ number_format($event->available_slots) }}
+                            </td>
+
+                            <td>
+                                <div class="event-management-actions-cell">
+
+                                    <a href="{{ route('events.show', $event->id) }}"
+                                       class="small-action view-action">
+                                        View
+                                    </a>
+
+                                    <a href="{{ route('events.edit', $event->id) }}"
+                                       class="small-action edit-action">
+                                        Edit
+                                    </a>
+
+                                    <form action="{{ route('events.destroy', $event->id) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Are you sure you want to delete this event?');">
+
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                                class="small-action delete-action">
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+
+                    @empty
+
+                        <tr>
+                            <td colspan="8" class="event-management-empty">
+                                <strong>No Events Available</strong>
+                                Start by creating your first event.
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
 
 @endsection

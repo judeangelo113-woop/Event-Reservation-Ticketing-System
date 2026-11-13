@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_admin.php';
@@ -5,10 +6,9 @@ require_once __DIR__ . '/../classes/Event.php';
 
 $errors = [];
 
+$id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-
-if ($id === false || $id === null || $id <= 0) {
+if ($id <= 0) {
     die('Invalid event ID.');
 }
 
@@ -16,28 +16,25 @@ try {
 
     $eventModel = new Event();
 
-    
-    //check event if exists
+    // Retrieve event details
     $event = $eventModel->getEventById($id);
 
     if ($event === null) {
         die('Event not found.');
     }
 
-    
-    //process of delete
+    // Process deletion
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        
-        $postedId = filter_input(
-            INPUT_POST,
-            'id',
-            FILTER_VALIDATE_INT
-        );
+        $postedId = (int) ($_POST['id'] ?? 0);
 
-        if ($postedId === false || $postedId === null || $postedId !== $id) {
+        if ($postedId !== $id) {
 
             $errors[] = 'Invalid event ID.';
+
+        } elseif (!verifyCSRFToken($_POST['csrf_token'] ?? null)) {
+
+            $errors[] = 'Invalid or expired request. Please refresh the page and try again.';
 
         } else {
 
@@ -45,19 +42,24 @@ try {
 
             if ($eventModel->delete()) {
 
-                header('Location: events.php');
+                header(
+                    'Location: ../public/events.php?message=' .
+                    urlencode('Event deleted successfully')
+                );
+
                 exit;
 
             } else {
 
-                $errors[] = 'Failed to delete the event.';
+                $errors[] = 'Unable to delete the event. It may have existing reservations or related records.';
             }
         }
     }
 
 } catch (Exception $e) {
 
-    $errors[] = 'An error occurred while deleting the event.';
+    $errors[] = 'An error occurred while deleting the event. Please check its related records and try again.';
+
 }
 
 ?>
@@ -68,13 +70,9 @@ try {
 <head>
 
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Delete Event</title>
+    <title>Delete Event | EventlyPH</title>
 
     <link rel="stylesheet" href="../assets/css/style.css">
 
@@ -84,115 +82,121 @@ try {
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<main class="container">
+<main class="container event-delete-page">
 
-    <div class="form-header">
+    <div class="event-delete-header">
+
+        <span class="event-delete-label">
+            EVENT MANAGEMENT
+        </span>
 
         <h1>Delete Event</h1>
 
         <p>
-            Review the event information before permanently deleting it.
+            Review the event information before confirming deletion.
         </p>
 
     </div>
 
-
-    <a href="events.php" class="btn btn-secondary back-button">
-        ← Back to Event Management
+    <a href="../public/events.php" class="event-delete-back">
+        &larr; Back to Event Management
     </a>
-
 
     <?php if (!empty($errors)): ?>
 
-        <div class="error">
+        <div class="event-delete-error">
 
-            <strong>Error:</strong>
+            <strong>Unable to delete event:</strong>
 
             <ul>
-
                 <?php foreach ($errors as $error): ?>
-
-                    <li>
-                        <?= htmlspecialchars($error) ?>
-                    </li>
-
+                    <li><?= htmlspecialchars($error) ?></li>
                 <?php endforeach; ?>
-
             </ul>
 
         </div>
 
     <?php endif; ?>
 
+    <div class="event-delete-card">
 
-    <div class="form-container">
+        <div class="event-delete-icon">!</div>
 
-        <h2>Are you sure you want to delete this event?</h2>
+        <h2>Confirm Event Deletion</h2>
 
-        <p>
-            This action cannot be undone.
+        <p class="event-delete-description">
+            Are you sure you want to permanently delete this event?
+            Please review its details before proceeding.
         </p>
 
+        <div class="event-delete-details">
 
-        <div class="delete-details">
+            <div class="event-delete-detail">
+                <span>Event ID</span>
+                <strong>#<?= (int) $event['id'] ?></strong>
+            </div>
 
-            <p>
-                <strong>Event ID:</strong>
-                <?= (int) $event['id'] ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Event Title</span>
+                <strong><?= htmlspecialchars($event['title']) ?></strong>
+            </div>
 
-            <p>
-                <strong>Title:</strong>
-                <?= htmlspecialchars($event['title']) ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Date</span>
+                <strong><?= htmlspecialchars($event['event_date']) ?></strong>
+            </div>
 
-            <p>
-                <strong>Date:</strong>
-                <?= htmlspecialchars($event['event_date']) ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Time</span>
+                <strong><?= htmlspecialchars($event['event_time']) ?></strong>
+            </div>
 
-            <p>
-                <strong>Time:</strong>
-                <?= htmlspecialchars($event['event_time']) ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Venue</span>
+                <strong><?= htmlspecialchars($event['venue']) ?></strong>
+            </div>
 
-            <p>
-                <strong>Venue:</strong>
-                <?= htmlspecialchars($event['venue']) ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Total Capacity</span>
+                <strong><?= (int) $event['capacity'] ?></strong>
+            </div>
 
-            <p>
-                <strong>Capacity:</strong>
-                <?= (int) $event['capacity'] ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Available Slots</span>
+                <strong><?= (int) $event['available_slots'] ?></strong>
+            </div>
 
-            <p>
-                <strong>Available Slots:</strong>
-                <?= (int) $event['available_slots'] ?>
-            </p>
+            <div class="event-delete-detail">
+                <span>Event Status</span>
 
-            <p>
-                <strong>Status:</strong>
-                <?= htmlspecialchars($event['status']) ?>
-            </p>
-
-        </div>
-
-
-        <div class="error">
-
-            <strong>Warning:</strong>
-
-            Deleting this event may also delete its related
-            reservations and tickets.
+                <strong>
+                    <span class="event-delete-status">
+                        <?= htmlspecialchars($event['status']) ?>
+                    </span>
+                </strong>
+            </div>
 
         </div>
 
+        <div class="event-delete-warning">
 
-        <br>
+            <strong>Important Warning</strong>
 
+            <p>
+                Deleting this event may also affect its associated
+                reservations and tickets, depending on your database
+                relationships. This action cannot be undone.
+            </p>
+
+        </div>
 
         <form method="POST" action="">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(generateCSRFToken()) ?>"
+            >
 
             <input
                 type="hidden"
@@ -200,19 +204,17 @@ try {
                 value="<?= (int) $event['id'] ?>"
             >
 
-            <button
-                type="submit"
-                class="btn btn-danger"
-            >
-                Yes, Delete Event
-            </button>
+            <div class="event-delete-actions">
 
-            <a
-                href="events.php"
-                class="btn btn-secondary"
-            >
-                Cancel
-            </a>
+                <a href="../public/events.php" class="event-delete-cancel">
+                    Cancel
+                </a>
+
+                <button type="submit" class="event-delete-confirm">
+                    Yes, Delete Event
+                </button>
+
+            </div>
 
         </form>
 
@@ -223,5 +225,4 @@ try {
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>

@@ -112,37 +112,48 @@ class Attendee extends BaseModel
     }
 
     //read all attendees from the database
-    public function getAllAttendees(string $search = ''): array
-    {
-    $sql = "SELECT
-                id,
-                first_name,
-                last_name,
-                email,
-                phone,
-                created_at
-            FROM attendees";
 
-    $params = [];
+    public function getAllAttendees(
+        string $search = '',
+        int $limit = 5,
+        int $offset = 0
+    ): array {
+        $sql = "SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    created_at
+                FROM attendees";
 
-    if ($search !== '') {
+        $params = [];
 
-        $sql .= " WHERE first_name LIKE :first_name_search
-                    OR last_name LIKE :last_name_search
-                    OR email LIKE :email_search";
+        if ($search !== '') {
+            $sql .= " WHERE first_name LIKE :first_name_search
+                        OR last_name LIKE :last_name_search
+                        OR email LIKE :email_search";
 
-        $searchValue = '%' . $search . '%';
+            $searchValue = '%' . $search . '%';
 
-        $params[':first_name_search'] = $searchValue;
-        $params[':last_name_search'] = $searchValue;
-        $params[':email_search'] = $searchValue;
+            $params[':first_name_search'] = $searchValue;
+            $params[':last_name_search'] = $searchValue;
+            $params[':email_search'] = $searchValue;
         }
 
         $sql .= " ORDER BY last_name ASC, first_name ASC";
+        $sql .= " LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
 
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $stmt->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+
+        $stmt->execute();
 
         return $stmt->fetchAll();
     }
@@ -236,6 +247,31 @@ class Attendee extends BaseModel
         return $stmt->execute([
             ':id' => $this->id
         ]);
+    }
+
+    // Count attendees with search filter
+    public function countAllAttendees(string $search = ''): int
+    {
+        $sql = "SELECT COUNT(*) FROM attendees";
+
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= " WHERE first_name LIKE :first_name_search
+                        OR last_name LIKE :last_name_search
+                        OR email LIKE :email_search";
+
+            $searchValue = '%' . $search . '%';
+
+            $params[':first_name_search'] = $searchValue;
+            $params[':last_name_search'] = $searchValue;
+            $params[':email_search'] = $searchValue;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 
 }

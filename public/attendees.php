@@ -1,16 +1,36 @@
+
 <?php
 
 require_once __DIR__ . '/../includes/require_admin.php';
 require_once __DIR__ . '/../classes/Attendee.php';
 
+$search = trim($_GET['search'] ?? '');
+$attendees = [];
+$totalAttendees = 0;
+$totalPages = 1;
+$currentPage = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 5;
+$offset = 0;
+$error = null;
 
 try {
 
     $attendeeModel = new Attendee();
 
-    $search = trim($_GET['search'] ?? '');
+    // Count filtered attendees
+    $totalAttendees = $attendeeModel->countAllAttendees($search);
 
-    $attendees = $attendeeModel->getAllAttendees($search);
+    // Calculate pagination
+    $totalPages = max(1, (int) ceil($totalAttendees / $perPage));
+    $currentPage = min($currentPage, $totalPages);
+    $offset = ($currentPage - 1) * $perPage;
+
+    // Retrieve attendees
+    $attendees = $attendeeModel->getAllAttendees(
+        $search,
+        $perPage,
+        $offset
+    );
 
 } catch (Exception $e) {
 
@@ -24,153 +44,262 @@ try {
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="../assets/css/style.css">
 
-    <title>Attendee Management</title>
-
+    <title>Attendee Management | EventlyPH</title>
 </head>
 
 <body>
 
 <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-<div class="container">
+<main class="container attendees-page">
 
-    <div class="page-header">
+    <!-- PAGE HEADER -->
+    <section class="attendees-heading">
 
         <div>
+            <span class="attendees-eyebrow">USER MANAGEMENT</span>
             <h1>Attendee Management</h1>
-
-            <p class="page-description">
-                Manage attendee information and registration records.
-            </p>
+            <p>View, search, and manage registered attendees.</p>
         </div>
 
-        <a href="../admin/create-attendee.php" class="btn btn-primary">
-    +           Add New Attendee
+        <a href="../admin/create-attendee.php" class="attendees-add-button">
+            + Add New Attendee
         </a>
 
-    </div>
+    </section>
 
-    <form method="GET" action="" class="filter-form">
+    <!-- SUMMARY -->
+    <section class="attendees-summary">
 
-        <input
-            type="text"
-            name="search"
-            placeholder="Search name or email..."
-            value="<?= htmlspecialchars($search) ?>"
-        >
+        <div class="attendees-summary-icon">👥</div>
 
-        <button type="submit">
-            Search
-        </button>
+        <div>
+            <span>Total Registered Attendees</span>
+            <h2><?= number_format($totalAttendees) ?></h2>
+        </div>
 
-        <?php if ($search !== ''): ?>
+    </section>
 
-            <a href="attendees.php" class="clear-filter">
-                Clear
-            </a>
+    <!-- SEARCH -->
+    <section class="attendees-content-card">
+
+        <div class="attendees-card-heading">
+            <div>
+                <h2>Attendee Records</h2>
+                <p>Search and manage attendee information.</p>
+            </div>
+        </div>
+
+        <form method="GET" action="" class="attendees-search-form">
+
+            <div class="attendees-search-input">
+                <span>⌕</span>
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Search by name or email..."
+                    value="<?= htmlspecialchars($search) ?>"
+                >
+            </div>
+
+            <button type="submit" class="attendees-search-button">
+                Search
+            </button>
+
+            <?php if ($search !== ''): ?>
+                <a href="attendees.php" class="attendees-clear-button">
+                    Clear
+                </a>
+            <?php endif; ?>
+
+        </form>
+
+        <!-- ERROR -->
+        <?php if ($error !== null): ?>
+
+            <div class="attendees-error">
+                <?= htmlspecialchars($error) ?>
+            </div>
+
+        <!-- EMPTY STATE -->
+        <?php elseif (empty($attendees)): ?>
+
+            <div class="attendees-empty">
+                <div>👤</div>
+                <h3>No attendees found</h3>
+
+                <p>
+                    <?php if ($search !== ''): ?>
+                        Try using a different search term.
+                    <?php else: ?>
+                        There are currently no registered attendees.
+                    <?php endif; ?>
+                </p>
+            </div>
+
+        <?php else: ?>
+
+            <!-- ATTENDEE TABLE -->
+            <div class="attendees-table-wrapper">
+
+                <table class="attendees-table">
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email Address</th>
+                            <th>Phone Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        <?php foreach ($attendees as $attendee): ?>
+
+                            <tr>
+
+                                <td>
+                                    <span class="attendees-id">
+                                        #<?= (int) $attendee['id'] ?>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars($attendee['first_name']) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars($attendee['last_name']) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars($attendee['email']) ?>
+                                </td>
+
+                                <td>
+                                    <?= htmlspecialchars($attendee['phone'] ?? 'N/A') ?>
+                                </td>
+
+                                <td>
+                                    <div class="attendees-actions">
+
+                                        <a
+                                            href="../admin/update-attendee.php?id=<?= (int) $attendee['id'] ?>"
+                                            class="attendees-edit-button"
+                                        >
+                                            Edit
+                                        </a>
+
+                                        <a
+                                            href="../admin/delete-attendee.php?id=<?= (int) $attendee['id'] ?>"
+                                            class="attendees-delete-button"
+                                        >
+                                            Delete
+                                        </a>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         <?php endif; ?>
 
-    </form>
+        <!-- PAGINATION INFORMATION -->
+        <?php if ($error === null && $totalAttendees > 0): ?>
 
-    <br>
+            <div class="attendees-pagination-footer">
 
-    <?php if (isset($error)): ?>
+                <div class="attendees-pagination-info">
+                    Showing
+                    <strong><?= $offset + 1 ?></strong>
+                    to
+                    <strong><?= min($offset + $perPage, $totalAttendees) ?></strong>
+                    of
+                    <strong><?= $totalAttendees ?></strong>
+                    attendees
+                </div>
 
-        <div class="error">
-            <?= htmlspecialchars($error) ?>
-        </div>
+                <!-- PAGINATION -->
+                <?php if ($totalPages > 1): ?>
 
-    <?php elseif (empty($attendees)): ?>
+                    <div class="attendees-pagination">
 
-        <p>No attendees found.</p>
+                        <?php
+                        $queryParams = [];
 
-    <?php else: ?>
+                        if ($search !== '') {
+                            $queryParams['search'] = $search;
+                        }
+                        ?>
 
-        <div class="table-container">
+                        <?php if ($currentPage > 1): ?>
 
-            <table>
+                            <?php
+                            $queryParams['page'] = $currentPage - 1;
+                            ?>
 
-                <thead>
+                            <a href="?<?= htmlspecialchars(http_build_query($queryParams)) ?>">
+                                Previous
+                            </a>
 
-                    <tr>
-                        <th>ID</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Actions</th>
-                    </tr>
+                        <?php endif; ?>
 
-                </thead>
+                        <?php for ($page = 1; $page <= $totalPages; $page++): ?>
 
-                <tbody>
+                            <?php
+                            $queryParams['page'] = $page;
+                            ?>
 
-                    <?php foreach ($attendees as $attendee): ?>
+                            <a
+                                href="?<?= htmlspecialchars(http_build_query($queryParams)) ?>"
+                                class="<?= $page === $currentPage ? 'active' : '' ?>"
+                            >
+                                <?= $page ?>
+                            </a>
 
-                        <tr>
+                        <?php endfor; ?>
 
-                            <td>
-                                <?= (int) $attendee['id'] ?>
-                            </td>
+                        <?php if ($currentPage < $totalPages): ?>
 
-                            <td>
-                                <?= htmlspecialchars($attendee['first_name']) ?>
-                            </td>
+                            <?php
+                            $queryParams['page'] = $currentPage + 1;
+                            ?>
 
-                            <td>
-                                <?= htmlspecialchars($attendee['last_name']) ?>
-                            </td>
+                            <a href="?<?= htmlspecialchars(http_build_query($queryParams)) ?>">
+                                Next
+                            </a>
 
-                            <td>
-                                <?= htmlspecialchars($attendee['email']) ?>
-                            </td>
+                        <?php endif; ?>
 
-                            <td>
-                                <?= htmlspecialchars($attendee['phone'] ?? '') ?>
-                            </td>
+                    </div>
 
-                            <td>
+                <?php endif; ?>
 
-                                <a
-                                    href="../admin/update-attendee.php?id=<?= (int) $attendee['id'] ?>"
-                                    class="btn btn-secondary"
-                                >
-                                    Edit
-                                </a>
+            </div>
 
-                                <a
-                                    href="../admin/delete-attendee.php?id=<?= (int) $attendee['id'] ?>"
-                                    class="btn btn-danger"
-                                >
-                                    Delete
-                                </a>
+        <?php endif; ?>
 
-                            </td>
+    </section>
 
-                        </tr>
-
-                    <?php endforeach; ?>
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    <?php endif; ?>
-
-</div>
+</main>
 
 <script src="../assets/js/navigation.js"></script>
 
 </body>
-
 </html>
