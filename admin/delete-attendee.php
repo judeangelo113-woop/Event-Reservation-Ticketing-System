@@ -180,7 +180,7 @@ try {
             <div class="attendee-delete-actions">
 
                 <a href="../public/attendees.php"
-                   class="attendee-delete-cancel">
+                class="attendee-delete-cancel">
                     Cancel
                 </a>
 
